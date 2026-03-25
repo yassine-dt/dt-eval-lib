@@ -1,0 +1,28 @@
+import type { ScoringScale, Score } from "./types.js";
+import { EvalInputError } from "../errors.js";
+
+/**
+ * Compute a score from a raw value using a scoring scale.
+ * Optionally override the scale's default threshold.
+ */
+export function computeScore(
+  value: number,
+  scale: ScoringScale,
+  thresholdOverride?: number,
+): Score {
+  const [min, max] = scale.range;
+  if (value < min || value > max) {
+    throw new EvalInputError(
+      `Score value ${value} is out of range [${min}, ${max}]`,
+    );
+  }
+
+  const threshold =
+    thresholdOverride !== undefined ? thresholdOverride : scale.threshold;
+  const label: Score["label"] = value >= threshold ? "pass" : "fail";
+
+  return { value, label };
+}
+
+export { BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scales.js";
+export type { ScoringScaleType, ScoringScale, Score } from "./types.js";
