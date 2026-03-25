@@ -4,9 +4,9 @@ import { PromptRegistry } from "../src/prompts/registry.js";
 import type { PromptDefinition } from "../src/prompts/types.js";
 
 describe("prompt catalog", () => {
-  it("loads all 7 built-in prompts", async () => {
+  it("loads all 13 built-in prompts", async () => {
     const prompts = await listPrompts();
-    expect(prompts).toHaveLength(7);
+    expect(prompts).toHaveLength(13);
   });
 
   it("each prompt has id, name, version, description, prompt, requiredFields, scoring", async () => {
@@ -119,9 +119,9 @@ describe("getPrompt", () => {
 });
 
 describe("listPrompts", () => {
-  it("returns all 7 prompts", async () => {
+  it("returns all 14 prompts", async () => {
     const prompts = await listPrompts();
-    expect(prompts).toHaveLength(7);
+    expect(prompts).toHaveLength(13);
   });
 
   it("getPrompt and listPrompts are async", () => {
