@@ -9,7 +9,9 @@ export interface EvalConfig {
   provider: Provider;
   /** API key — falls back to OPENAI_API_KEY / ANTHROPIC_API_KEY env vars */
   apiKey?: string;
-  /** Model override — defaults to gpt-4o / claude-sonnet-4-20250514 */
+  /** Base URL for the provider API — falls back to OPENAI_BASE_URL / ANTHROPIC_BASE_URL env vars */
+  baseUrl?: string;
+  /** Model override — defaults to gpt-5.1 / claude-sonnet-4-20250514 */
   model?: string;
   /** Override the metric's default scoring threshold */
   thresholdOverride?: number;

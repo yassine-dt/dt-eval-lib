@@ -1,5 +1,8 @@
 // Public API — dt-eval-lib
 
+// Main eval function
+export { evaluate } from "./engine/index.js";
+
 // Scoring
 export { computeScore, BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scoring/index.js";
 

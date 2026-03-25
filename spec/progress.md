@@ -11,8 +11,15 @@
 - Build: dist/ with .js, .d.ts, .map
 - Commit: `feat: project scaffolding, tooling, and foundation types`
 
-## Story 1 — Scoring System
-Pending
+## Story 1 — Prompt Catalog & Scoring System ✅
+- Implemented computeScore() with threshold override support
+- Added BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE templates
+- Created catalog.json with 7 prompt definitions (embedded scoring)
+- Implemented PromptRegistry (get/list/has/register)
+- Added getPrompt() and listPrompts() async API
+- Tests: 40/40 passing (17 scoring + 23 prompts)
+- Build: dist/ with .js, .d.ts
+- Commit: `feat: built-in scoring scales and 7-metric prompt catalog`
 
 ## Story 2 — Prompt Catalog & Registry
 Pending

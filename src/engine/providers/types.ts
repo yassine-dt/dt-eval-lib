@@ -1,14 +1,21 @@
-import type { EvalInput } from "../types.js";
-
 /** Raw structured response from the LLM judge */
 export interface LLMJudgeResponse {
-  score_value: number;
+  scoreValue: number;
   summary: string;
   reasoning: string;
 }
 
+/** Configuration passed to provider constructors */
+export interface ProviderConfig {
+  apiKey: string;
+  model: string;
+  timeout: number;
+  maxRetries: number;
+  baseUrl?: string;
+}
+
 /** Interface that each LLM provider must implement */
 export interface LLMProvider {
-  /** Send the evaluation prompt to the LLM and get structured output */
-  evaluate(systemPrompt: string, input: EvalInput): Promise<LLMJudgeResponse>;
+  /** Send the rendered evaluation prompt and get structured output */
+  call(prompt: string): Promise<LLMJudgeResponse>;
 }
