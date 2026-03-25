@@ -121,3 +121,28 @@ const result = await evaluate("relevance", input, {
   thresholdOverride: 0.8, // stricter than default 0.5
 });
 ```
+
+## Custom Prompts
+
+Create your own evaluation metrics and persist them to disk (`~/.dt-eval/custom-prompts.json`):
+
+```ts
+import { createCustomPrompt, deleteCustomPrompt, loadCustomPrompts } from "dt-eval-lib";
+
+// Create a custom metric
+const prompt = await createCustomPrompt({
+  name: "Tone Check",
+  prompt: "Evaluate if the output uses a professional tone.\n\nInput: {{input}}\nOutput: {{output}}",
+  description: "Checks for professional tone",
+  // Optional — defaults to continuous [0,1] with threshold 0.5
+});
+
+// Use it with evaluate()
+const result = await evaluate("tone-check", input, config);
+
+// Load previously saved custom prompts
+const customs = await loadCustomPrompts();
+
+// Delete a custom prompt
+await deleteCustomPrompt("tone-check");
+```

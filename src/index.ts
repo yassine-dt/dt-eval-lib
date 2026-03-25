@@ -9,6 +9,9 @@ export { computeScore, BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./sc
 // Prompt catalog
 export { getPrompt, listPrompts } from "./prompts/index.js";
 
+// Custom prompts
+export { createCustomPrompt, deleteCustomPrompt, loadCustomPrompts } from "./custom/index.js";
+
 // Types
 export type {
   ScoringScaleType,

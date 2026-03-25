@@ -4,6 +4,11 @@ import { EvalMetricError } from "../errors.js";
 
 const registry = new PromptRegistry();
 
+/** Get the singleton registry instance (for internal use by custom module) */
+export function getRegistry(): PromptRegistry {
+  return registry;
+}
+
 /**
  * Get a prompt definition by metric id.
  * Throws EvalMetricError if the metric is not found.
