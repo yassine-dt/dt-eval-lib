@@ -23,17 +23,19 @@ npm test
 ## Quick Usage
 
 ```ts
-import { evaluate } from "dt-eval-lib";
+import { evaluate, BuiltInMetric } from "dt-eval-lib";
 
 const result = await evaluate(
-  "toxicity",
+  BuiltInMetric.Toxicity,
   {
     input: "Tell me a joke",
     output: "Why did the chicken cross the road? To get to the other side!",
   },
   {
-    provider: "openai",
-    apiKey: "sk-...",
+    provider: {
+      provider: "openai",
+      apiKey: "sk-...",
+    },
   },
 );
 
@@ -43,15 +45,21 @@ console.log(result.explanation); // { summary: "...", reasoning: "..." }
 
 ## Available Metrics
 
-| Metric | Type | Required Fields |
-|--------|------|-----------------|
-| `toxicity` | binary | input, output |
-| `faithfulness` | continuous | input, output, context |
-| `hallucination` | binary | input, output, context |
-| `pii-leakage` | binary | input, output |
-| `relevance` | continuous | input, output |
-| `factual-accuracy` | continuous | input, output, expected_output |
-| `coherence` | likert (1-5) | input, output |
+| Metric | Enum | Type | Required Fields |
+|--------|------|------|-----------------|
+| `toxicity` | `BuiltInMetric.Toxicity` | binary | input, output |
+| `faithfulness` | `BuiltInMetric.Faithfulness` | continuous | input, output, context |
+| `hallucination` | `BuiltInMetric.Hallucination` | binary | input, output, context |
+| `pii-leakage` | `BuiltInMetric.PiiLeakage` | binary | input, output |
+| `relevance` | `BuiltInMetric.Relevance` | continuous | input, output |
+| `factual-accuracy` | `BuiltInMetric.FactualAccuracy` | continuous | input, output, expected_output |
+| `coherence` | `BuiltInMetric.Coherence` | likert (1-5) | input, output |
+| `context-relevance` | `BuiltInMetric.ContextRelevance` | continuous | input, context |
+| `answer-completeness` | `BuiltInMetric.AnswerCompleteness` | continuous | input, output |
+| `prompt-injection` | `BuiltInMetric.PromptInjection` | binary | input, output |
+| `bias` | `BuiltInMetric.Bias` | binary | input, output |
+| `summarization-quality` | `BuiltInMetric.SummarizationQuality` | continuous | input, output |
+| `conciseness` | `BuiltInMetric.Conciseness` | continuous | input, output |
 
 ## Providers
 
@@ -79,70 +87,70 @@ ANTHROPIC_BASE_URL=https://your-proxy.example.com
 ```
 
 When calling `evaluate()`, the library resolves config in this order:
-1. Explicit value in `config` (e.g., `config.apiKey`, `config.baseUrl`)
+1. Explicit value in `provider` options (e.g., `provider.apiKey`, `provider.baseUrl`)
 2. Environment variable (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, etc.)
 
 ```ts
 // Option 1: explicit config
-await evaluate("toxicity", input, {
-  provider: "openai",
-  apiKey: "sk-...",
-  baseUrl: "https://your-proxy.example.com/v1",
+await evaluate(BuiltInMetric.Toxicity, input, {
+  provider: {
+    provider: "openai",
+    apiKey: "sk-...",
+    baseUrl: "https://your-proxy.example.com/v1",
+  },
 });
 
 // Option 2: env vars (no apiKey/baseUrl needed)
-await evaluate("toxicity", input, { provider: "openai" });
+await evaluate(BuiltInMetric.Toxicity, input, {
+  provider: { provider: "openai" },
+});
 ```
 
 ## Metric Identification
 
-Metrics are identified by **string IDs** (not enums). Pass the ID directly to `evaluate()`:
+Metrics are identified by the `BuiltInMetric` enum. You can also pass a custom `PromptDefinition` object directly:
 
 ```ts
-await evaluate("toxicity", input, config);       // built-in metric by string ID
-await evaluate(myCustomPrompt, input, config);    // or a PromptDefinition object
+import { evaluate, BuiltInMetric } from "dt-eval-lib";
+
+await evaluate(BuiltInMetric.Toxicity, input, config);   // built-in metric via enum
+await evaluate(myCustomPrompt, input, config);             // custom PromptDefinition object
 ```
 
 Use `listPrompts()` and `getPrompt()` to discover available metrics:
 
 ```ts
-import { listPrompts, getPrompt } from "dt-eval-lib";
+import { listPrompts, getPrompt, BuiltInMetric } from "dt-eval-lib";
 
-const all = await listPrompts();           // all 7 built-in metrics
-const tox = await getPrompt("toxicity");   // single metric by ID
+const all = listPrompts();                        // all 13 built-in metrics
+const tox = getPrompt(BuiltInMetric.Toxicity);    // single metric by ID
+```
+
+## Configuration
+
+```ts
+import type { EvalConfig } from "dt-eval-lib";
+
+const config: EvalConfig = {
+  provider: {
+    provider: "openai",          // "openai" | "anthropic"
+    apiKey: "sk-...",            // optional if env var is set
+    baseUrl: "https://...",      // optional
+    model: "gpt-5.1",           // optional — defaults to gpt-5.1 / claude-sonnet-4-20250514
+    timeout: 30000,              // optional — request timeout in ms (default 30000)
+    maxRetries: 2,               // optional — retries on transient errors (default 2)
+  },
+  scoring: {
+    thresholdOverride: 0.8,      // optional — override the metric's default threshold
+  },
+};
 ```
 
 ## Threshold Override
 
 ```ts
-const result = await evaluate("relevance", input, {
-  provider: "openai",
-  apiKey: "sk-...",
-  thresholdOverride: 0.8, // stricter than default 0.5
+const result = await evaluate(BuiltInMetric.Relevance, input, {
+  provider: { provider: "openai", apiKey: "sk-..." },
+  scoring: { thresholdOverride: 0.8 }, // stricter than default 0.5
 });
-```
-
-## Custom Prompts
-
-Create your own evaluation metrics and persist them to disk (`~/.dt-eval/custom-prompts.json`):
-
-```ts
-import { createCustomPrompt, deleteCustomPrompt, loadCustomPrompts } from "dt-eval-lib";
-
-// Create a custom metric
-const prompt = await createCustomPrompt({
-  name: "Tone Check",
-  prompt: "Evaluate if the output uses a professional tone.\n\nInput: {{input}}\nOutput: {{output}}",
-  description: "Checks for professional tone",
-  // Optional — defaults to continuous [0,1] with threshold 0.5
-});
-
-// Use it with evaluate()
-const result = await evaluate("tone-check", input, config);
-
-// Load previously saved custom prompts
-const customs = await loadCustomPrompts();
-
-// Delete a custom prompt
-await deleteCustomPrompt("tone-check");
 ```

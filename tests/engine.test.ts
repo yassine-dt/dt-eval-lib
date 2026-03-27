@@ -23,19 +23,20 @@ vi.mock("@anthropic-ai/sdk", () => {
   };
 });
 
-import { evaluate } from "../src/engine/index.js";
-import { createProvider } from "../src/engine/providers/index.js";
-import { OpenAIProvider } from "../src/engine/providers/openai.js";
-import { AnthropicProvider } from "../src/engine/providers/anthropic.js";
-import type { EvalConfig, EvalInput, PromptDefinition } from "../src/types.js";
+import { evaluate } from "../src/engine/index";
+import { createProvider } from "../src/engine/providers/index";
+import { OpenAIProvider } from "../src/engine/providers/openai";
+import { AnthropicProvider } from "../src/engine/providers/anthropic";
+import { BuiltInMetric } from "../src/prompts/types";
+import type { EvalConfig, EvalInput, ProviderOptions, PromptDefinition } from "../src/types";
 import {
   EvalConfigError,
   EvalInputError,
   EvalMetricError,
   EvalTimeoutError,
   EvalResponseError,
-} from "../src/errors.js";
-import type { LLMProvider, LLMJudgeResponse } from "../src/engine/providers/types.js";
+} from "../src/errors";
+import type { LLMProvider, LLMJudgeResponse } from "../src/engine/providers/types";
 
 // Helper to create a mock provider
 function mockProvider(response: LLMJudgeResponse): LLMProvider {
@@ -58,19 +59,23 @@ function failingProvider(error: Error, succeedAfter?: number): LLMProvider {
 }
 
 // We mock createProvider in the evaluate tests to inject our mock providers
-vi.mock("../src/engine/providers/index.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/engine/providers/index.js")>();
+vi.mock("../src/engine/providers/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/engine/providers/index")>();
   return {
     ...actual,
     createProvider: vi.fn(actual.createProvider),
   };
 });
 
-const baseConfig: EvalConfig = {
+const baseProviderOptions: ProviderOptions = {
   provider: "openai",
   apiKey: "test-key-123",
   timeout: 30000,
   maxRetries: 2,
+};
+
+const baseConfig: EvalConfig = {
+  provider: baseProviderOptions,
 };
 
 const baseInput: EvalInput = {
@@ -99,8 +104,8 @@ describe("evaluate() — happy path", () => {
     vi.restoreAllMocks();
   });
 
-  it("evaluates with a string metric id (built-in)", async () => {
-    const result = await evaluate("toxicity", baseInput, baseConfig);
+  it("evaluates with a BuiltInMetric enum value", async () => {
+    const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(result).toBeDefined();
     expect(result.score).toBeDefined();
     expect(result.explanation).toBeDefined();
@@ -113,7 +118,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("returns correct EvalResult shape { score: { value, label }, explanation: { summary, reasoning } }", async () => {
-    const result = await evaluate("toxicity", baseInput, baseConfig);
+    const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(result).toEqual({
       score: { value: 1, label: "pass" },
       explanation: { summary: "Good output", reasoning: "Output is correct" },
@@ -124,7 +129,7 @@ describe("evaluate() — happy path", () => {
     vi.mocked(createProvider).mockReturnValue(
       mockProvider({ scoreValue: 1, summary: "safe", reasoning: "no issues" }),
     );
-    const result = await evaluate("toxicity", baseInput, baseConfig);
+    const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(result.score).toEqual({ value: 1, label: "pass" });
   });
 
@@ -132,7 +137,7 @@ describe("evaluate() — happy path", () => {
     vi.mocked(createProvider).mockReturnValue(
       mockProvider({ scoreValue: 0, summary: "toxic", reasoning: "contains slurs" }),
     );
-    const result = await evaluate("toxicity", baseInput, baseConfig);
+    const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(result.score).toEqual({ value: 0, label: "fail" });
   });
 
@@ -140,7 +145,7 @@ describe("evaluate() — happy path", () => {
     vi.mocked(createProvider).mockReturnValue(
       mockProvider({ scoreValue: 0.8, summary: "relevant", reasoning: "on topic" }),
     );
-    const result = await evaluate("relevance", baseInput, baseConfig);
+    const result = await evaluate(BuiltInMetric.Relevance, baseInput, baseConfig);
     expect(result.score).toEqual({ value: 0.8, label: "pass" });
   });
 
@@ -148,7 +153,7 @@ describe("evaluate() — happy path", () => {
     vi.mocked(createProvider).mockReturnValue(
       mockProvider({ scoreValue: 4, summary: "coherent", reasoning: "well structured" }),
     );
-    const result = await evaluate("coherence", baseInput, baseConfig);
+    const result = await evaluate(BuiltInMetric.Coherence, baseInput, baseConfig);
     expect(result.score).toEqual({ value: 4, label: "pass" });
   });
 
@@ -156,9 +161,9 @@ describe("evaluate() — happy path", () => {
     vi.mocked(createProvider).mockReturnValue(
       mockProvider({ scoreValue: 0.8, summary: "ok", reasoning: "decent" }),
     );
-    const result = await evaluate("relevance", baseInput, {
+    const result = await evaluate(BuiltInMetric.Relevance, baseInput, {
       ...baseConfig,
-      thresholdOverride: 0.9,
+      scoring: { thresholdOverride: 0.9 },
     });
     expect(result.score).toEqual({ value: 0.8, label: "fail" });
   });
@@ -169,9 +174,9 @@ describe("evaluate() — happy path", () => {
     );
     // Default continuous threshold is 0.5, so 0.4 would fail
     // Override to 0.3, so 0.4 should pass
-    const result = await evaluate("relevance", baseInput, {
+    const result = await evaluate(BuiltInMetric.Relevance, baseInput, {
       ...baseConfig,
-      thresholdOverride: 0.3,
+      scoring: { thresholdOverride: 0.3 },
     });
     expect(result.score.label).toBe("pass");
   });
@@ -195,13 +200,13 @@ describe("evaluate() — prompt rendering", () => {
   });
 
   it("replaces {{input}} placeholder", async () => {
-    await evaluate("toxicity", baseInput, baseConfig);
+    await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(capturedPrompt).toContain("What is the capital of France?");
     expect(capturedPrompt).not.toContain("{{input}}");
   });
 
   it("replaces {{output}} placeholder", async () => {
-    await evaluate("toxicity", baseInput, baseConfig);
+    await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     expect(capturedPrompt).toContain("The capital of France is Paris.");
     expect(capturedPrompt).not.toContain("{{output}}");
   });
@@ -211,7 +216,7 @@ describe("evaluate() — prompt rendering", () => {
       ...baseInput,
       context: "France is a country in Europe. Its capital is Paris.",
     };
-    await evaluate("faithfulness", input, baseConfig);
+    await evaluate(BuiltInMetric.Faithfulness, input, baseConfig);
     expect(capturedPrompt).toContain("France is a country in Europe");
     expect(capturedPrompt).not.toContain("{{context}}");
   });
@@ -221,13 +226,13 @@ describe("evaluate() — prompt rendering", () => {
       ...baseInput,
       expectedOutput: "Paris is the capital of France.",
     };
-    await evaluate("factual-accuracy", input, baseConfig);
+    await evaluate(BuiltInMetric.FactualAccuracy, input, baseConfig);
     expect(capturedPrompt).toContain("Paris is the capital of France.");
     expect(capturedPrompt).not.toContain("{{expected_output}}");
   });
 
   it("omits optional placeholders when fields not provided", async () => {
-    await evaluate("toxicity", baseInput, baseConfig);
+    await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
     // toxicity only requires input + output, no context/expected_output placeholders in its prompt
     expect(capturedPrompt).not.toContain("{{context}}");
     expect(capturedPrompt).not.toContain("{{expected_output}}");
@@ -247,28 +252,22 @@ describe("evaluate() — input validation", () => {
 
   it("throws EvalInputError when required field 'context' is missing for faithfulness", async () => {
     await expect(
-      evaluate("faithfulness", baseInput, baseConfig),
+      evaluate(BuiltInMetric.Faithfulness, baseInput, baseConfig),
     ).rejects.toBeInstanceOf(EvalInputError);
   });
 
   it("throws EvalInputError when required field 'expected_output' is missing for factual-accuracy", async () => {
     await expect(
-      evaluate("factual-accuracy", baseInput, baseConfig),
+      evaluate(BuiltInMetric.FactualAccuracy, baseInput, baseConfig),
     ).rejects.toBeInstanceOf(EvalInputError);
   });
 
   it("error message lists missing fields", async () => {
     try {
-      await evaluate("faithfulness", baseInput, baseConfig);
+      await evaluate(BuiltInMetric.Faithfulness, baseInput, baseConfig);
     } catch (e: any) {
       expect(e.message).toContain("context");
     }
-  });
-
-  it("throws EvalMetricError for unknown string metric id", async () => {
-    await expect(
-      evaluate("nonexistent", baseInput, baseConfig),
-    ).rejects.toBeInstanceOf(EvalMetricError);
   });
 });
 
@@ -278,12 +277,11 @@ describe("evaluate() — error handling", () => {
   });
 
   it("throws EvalConfigError when API key is missing", async () => {
-    const config: EvalConfig = { provider: "openai" };
-    // Remove env var too
+    const config: EvalConfig = { provider: { provider: "openai" } };
     const origEnv = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     try {
-      await expect(evaluate("toxicity", baseInput, config)).rejects.toBeInstanceOf(
+      await expect(evaluate(BuiltInMetric.Toxicity, baseInput, config)).rejects.toBeInstanceOf(
         EvalConfigError,
       );
     } finally {
@@ -296,7 +294,7 @@ describe("evaluate() — error handling", () => {
     (timeoutError as any).code = "ETIMEDOUT";
     vi.mocked(createProvider).mockReturnValue(failingProvider(timeoutError));
     await expect(
-      evaluate("toxicity", baseInput, baseConfig),
+      evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig),
     ).rejects.toBeInstanceOf(EvalTimeoutError);
   });
 
@@ -306,7 +304,7 @@ describe("evaluate() — error handling", () => {
     };
     vi.mocked(createProvider).mockReturnValue(provider);
     await expect(
-      evaluate("toxicity", baseInput, baseConfig),
+      evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig),
     ).rejects.toBeInstanceOf(EvalResponseError);
   });
 
@@ -315,9 +313,8 @@ describe("evaluate() — error handling", () => {
     (transientError as any).status = 429;
     const provider = failingProvider(transientError, 2); // succeeds on 3rd call
     vi.mocked(createProvider).mockReturnValue(provider);
-    const result = await evaluate("toxicity", baseInput, {
-      ...baseConfig,
-      maxRetries: 2,
+    const result = await evaluate(BuiltInMetric.Toxicity, baseInput, {
+      provider: { ...baseProviderOptions, maxRetries: 2 },
     });
     expect(result.score.value).toBe(1);
     expect(provider.call).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
@@ -328,7 +325,9 @@ describe("evaluate() — error handling", () => {
     (transientError as any).status = 429;
     vi.mocked(createProvider).mockReturnValue(failingProvider(transientError));
     await expect(
-      evaluate("toxicity", baseInput, { ...baseConfig, maxRetries: 2 }),
+      evaluate(BuiltInMetric.Toxicity, baseInput, {
+        provider: { ...baseProviderOptions, maxRetries: 2 },
+      }),
     ).rejects.toThrow();
   });
 
@@ -338,11 +337,33 @@ describe("evaluate() — error handling", () => {
     const provider = failingProvider(transientError, 2);
     vi.mocked(createProvider).mockReturnValue(provider);
 
-    const startTime = Date.now();
-    // Use minimal config for fast test
-    await evaluate("toxicity", baseInput, { ...baseConfig, maxRetries: 2 });
+    await evaluate(BuiltInMetric.Toxicity, baseInput, {
+      provider: { ...baseProviderOptions, maxRetries: 2 },
+    });
     // Just verify multiple calls were made (backoff is internal)
     expect(provider.call).toHaveBeenCalledTimes(3);
+  });
+
+  it("throws EvalConfigError for negative maxRetries", async () => {
+    vi.mocked(createProvider).mockReturnValue(
+      mockProvider({ scoreValue: 1, summary: "ok", reasoning: "ok" }),
+    );
+    await expect(
+      evaluate(BuiltInMetric.Toxicity, baseInput, {
+        provider: { ...baseProviderOptions, maxRetries: -1 },
+      }),
+    ).rejects.toBeInstanceOf(EvalConfigError);
+  });
+
+  it("throws EvalConfigError for non-integer maxRetries", async () => {
+    vi.mocked(createProvider).mockReturnValue(
+      mockProvider({ scoreValue: 1, summary: "ok", reasoning: "ok" }),
+    );
+    await expect(
+      evaluate(BuiltInMetric.Toxicity, baseInput, {
+        provider: { ...baseProviderOptions, maxRetries: 2.5 },
+      }),
+    ).rejects.toBeInstanceOf(EvalConfigError);
   });
 });
 

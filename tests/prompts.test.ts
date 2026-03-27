@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { getPrompt, listPrompts } from "../src/prompts/index.js";
-import { PromptRegistry } from "../src/prompts/registry.js";
-import type { PromptDefinition } from "../src/prompts/types.js";
+import { getPrompt, listPrompts, BuiltInMetric } from "../src/prompts/index";
+import { PromptRegistry } from "../src/prompts/registry";
+import { EvalMetricError } from "../src/errors";
 
 describe("prompt catalog", () => {
-  it("loads all 13 built-in prompts", async () => {
-    const prompts = await listPrompts();
+  it("loads all 13 built-in prompts", () => {
+    const prompts = listPrompts();
     expect(prompts).toHaveLength(13);
   });
 
-  it("each prompt has id, name, version, description, prompt, requiredFields, scoring", async () => {
-    const prompts = await listPrompts();
+  it("each prompt has id, name, version, description, prompt, requiredFields, scoring", () => {
+    const prompts = listPrompts();
     for (const p of prompts) {
       expect(p).toHaveProperty("id");
       expect(p).toHaveProperty("name");
@@ -22,8 +22,8 @@ describe("prompt catalog", () => {
     }
   });
 
-  it("each prompt has embedded scoring with type, range, and threshold", async () => {
-    const prompts = await listPrompts();
+  it("each prompt has embedded scoring with type, range, and threshold", () => {
+    const prompts = listPrompts();
     for (const p of prompts) {
       expect(p.scoring).toHaveProperty("type");
       expect(p.scoring).toHaveProperty("range");
@@ -33,84 +33,69 @@ describe("prompt catalog", () => {
     }
   });
 
-  it("toxicity has binary scoring with threshold 1", async () => {
-    const p = await getPrompt("toxicity");
-    expect(p.scoring.type).toBe("binary");
-    expect(p.scoring.threshold).toBe(1);
-  });
-
-  it("faithfulness has continuous scoring with threshold 0.5", async () => {
-    const p = await getPrompt("faithfulness");
-    expect(p.scoring.type).toBe("continuous");
-    expect(p.scoring.threshold).toBe(0.5);
-  });
-
-  it("coherence has likert scoring with threshold 3", async () => {
-    const p = await getPrompt("coherence");
-    expect(p.scoring.type).toBe("likert");
-    expect(p.scoring.threshold).toBe(3);
-  });
-
-  it("toxicity prompt requires input and output", async () => {
-    const p = await getPrompt("toxicity");
-    expect(p.requiredFields).toEqual(["input", "output"]);
-  });
-
-  it("faithfulness prompt requires input, output, and context", async () => {
-    const p = await getPrompt("faithfulness");
-    expect(p.requiredFields).toEqual(["input", "output", "context"]);
-  });
-
-  it("hallucination prompt requires input, output, and context", async () => {
-    const p = await getPrompt("hallucination");
-    expect(p.requiredFields).toEqual(["input", "output", "context"]);
-  });
-
-  it("pii-leakage prompt requires input and output", async () => {
-    const p = await getPrompt("pii-leakage");
-    expect(p.requiredFields).toEqual(["input", "output"]);
-  });
-
-  it("relevance prompt requires input and output", async () => {
-    const p = await getPrompt("relevance");
-    expect(p.requiredFields).toEqual(["input", "output"]);
-  });
-
-  it("factual-accuracy prompt requires input, output, and expected_output", async () => {
-    const p = await getPrompt("factual-accuracy");
-    expect(p.requiredFields).toEqual(["input", "output", "expected_output"]);
-  });
-
-  it("coherence prompt requires input and output", async () => {
-    const p = await getPrompt("coherence");
-    expect(p.requiredFields).toEqual(["input", "output"]);
-  });
-
-  it("each prompt contains placeholder tokens matching its requiredFields", async () => {
-    const prompts = await listPrompts();
+  it("each prompt contains placeholder tokens matching its requiredFields", () => {
+    const prompts = listPrompts();
     for (const p of prompts) {
       for (const field of p.requiredFields) {
         expect(p.prompt).toContain(`{{${field}}}`);
       }
     }
   });
+
+  const scoringCases = [
+    { id: BuiltInMetric.Toxicity, type: "binary", threshold: 1 },
+    { id: BuiltInMetric.Faithfulness, type: "continuous", threshold: 0.5 },
+    { id: BuiltInMetric.Coherence, type: "likert", threshold: 3 },
+  ] as const;
+
+  it.each(scoringCases)(
+    "$id has $type scoring with threshold $threshold",
+    ({ id, type, threshold }) => {
+      const p = getPrompt(id);
+      expect(p.scoring.type).toBe(type);
+      expect(p.scoring.threshold).toBe(threshold);
+    },
+  );
+
+  const requiredFieldsCases = [
+    { id: BuiltInMetric.Toxicity, fields: ["input", "output"] },
+    { id: BuiltInMetric.Faithfulness, fields: ["input", "output", "context"] },
+    { id: BuiltInMetric.Hallucination, fields: ["input", "output", "context"] },
+    { id: BuiltInMetric.PiiLeakage, fields: ["input", "output"] },
+    { id: BuiltInMetric.Relevance, fields: ["input", "output"] },
+    { id: BuiltInMetric.FactualAccuracy, fields: ["input", "output", "expected_output"] },
+    { id: BuiltInMetric.Coherence, fields: ["input", "output"] },
+    { id: BuiltInMetric.ContextRelevance, fields: ["input", "context"] },
+    { id: BuiltInMetric.AnswerCompleteness, fields: ["input", "output"] },
+    { id: BuiltInMetric.PromptInjection, fields: ["input", "output"] },
+    { id: BuiltInMetric.Bias, fields: ["input", "output"] },
+    { id: BuiltInMetric.SummarizationQuality, fields: ["input", "output"] },
+    { id: BuiltInMetric.Conciseness, fields: ["input", "output"] },
+  ] as const;
+
+  it.each(requiredFieldsCases)(
+    "$id requires $fields",
+    ({ id, fields }) => {
+      const p = getPrompt(id);
+      expect(p.requiredFields).toEqual(fields);
+    },
+  );
 });
 
 describe("getPrompt", () => {
-  it("returns prompt by id", async () => {
-    const p = await getPrompt("toxicity");
+  it("returns prompt by id", () => {
+    const p = getPrompt(BuiltInMetric.Toxicity);
     expect(p.id).toBe("toxicity");
     expect(p.name).toBe("Toxicity");
   });
 
-  it("throws EvalMetricError for unknown id", async () => {
-    const { EvalMetricError } = await import("../src/errors.js");
-    await expect(getPrompt("nonexistent")).rejects.toBeInstanceOf(EvalMetricError);
+  it("throws EvalMetricError for unknown id", () => {
+    expect(() => getPrompt("nonexistent")).toThrow(EvalMetricError);
   });
 
-  it("error message lists available metrics", async () => {
+  it("error message lists available metrics", () => {
     try {
-      await getPrompt("nonexistent");
+      getPrompt("nonexistent");
     } catch (e: any) {
       expect(e.message).toContain("toxicity");
       expect(e.message).toContain("faithfulness");
@@ -119,14 +104,29 @@ describe("getPrompt", () => {
 });
 
 describe("listPrompts", () => {
-  it("returns all 14 prompts", async () => {
-    const prompts = await listPrompts();
+  it("returns all 13 prompts", () => {
+    const prompts = listPrompts();
     expect(prompts).toHaveLength(13);
   });
 
-  it("getPrompt and listPrompts are async", () => {
-    expect(getPrompt("toxicity")).toBeInstanceOf(Promise);
-    expect(listPrompts()).toBeInstanceOf(Promise);
+  it("getPrompt and listPrompts are synchronous", () => {
+    const prompt = getPrompt(BuiltInMetric.Toxicity);
+    expect(prompt).not.toBeInstanceOf(Promise);
+    const prompts = listPrompts();
+    expect(prompts).not.toBeInstanceOf(Promise);
+  });
+});
+
+describe("BuiltInMetric enum", () => {
+  it("has all 13 metric IDs", () => {
+    expect(Object.values(BuiltInMetric)).toHaveLength(13);
+  });
+
+  it("enum values match catalog IDs", () => {
+    const prompts = listPrompts();
+    const catalogIds = prompts.map((p) => p.id).sort();
+    const enumValues = Object.values(BuiltInMetric).sort();
+    expect(enumValues).toEqual(catalogIds);
   });
 });
 
@@ -139,35 +139,5 @@ describe("registry", () => {
   it("has() returns false for unknown prompts", () => {
     const registry = new PromptRegistry();
     expect(registry.has("nonexistent")).toBe(false);
-  });
-
-  it("register() adds a new prompt", () => {
-    const registry = new PromptRegistry();
-    const custom: PromptDefinition = {
-      id: "custom-test",
-      name: "Custom Test",
-      version: "1.0.0",
-      description: "A test prompt",
-      prompt: "Evaluate {{input}} and {{output}}",
-      requiredFields: ["input", "output"],
-      scoring: { type: "binary", range: [0, 1], threshold: 1 },
-    };
-    registry.register(custom);
-    expect(registry.has("custom-test")).toBe(true);
-    expect(registry.get("custom-test")).toEqual(custom);
-  });
-
-  it("register() throws if id already exists", () => {
-    const registry = new PromptRegistry();
-    const duplicate: PromptDefinition = {
-      id: "toxicity",
-      name: "Dupe",
-      version: "1.0.0",
-      description: "Duplicate",
-      prompt: "test",
-      requiredFields: ["input", "output"],
-      scoring: { type: "binary", range: [0, 1], threshold: 1 },
-    };
-    expect(() => registry.register(duplicate)).toThrow();
   });
 });

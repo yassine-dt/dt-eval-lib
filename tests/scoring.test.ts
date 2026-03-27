@@ -4,7 +4,8 @@ import {
   BINARY_SCALE,
   CONTINUOUS_SCALE,
   LIKERT_SCALE,
-} from "../src/scoring/index.js";
+} from "../src/scoring/index";
+import { EvalInputError } from "../src/errors";
 
 describe("computeScore", () => {
   it("binary scale: value 1 → pass", () => {
@@ -107,5 +108,29 @@ describe("built-in scale templates", () => {
         5: "Excellent",
       },
     });
+  });
+});
+
+describe("thresholdOverride validation", () => {
+  it("throws EvalInputError when thresholdOverride is above range max", () => {
+    expect(() => computeScore(0.5, CONTINUOUS_SCALE, 2)).toThrow(EvalInputError);
+  });
+
+  it("throws EvalInputError when thresholdOverride is below range min", () => {
+    expect(() => computeScore(0.5, CONTINUOUS_SCALE, -1)).toThrow(EvalInputError);
+  });
+
+  it("throws EvalInputError when thresholdOverride is NaN", () => {
+    expect(() => computeScore(0.5, CONTINUOUS_SCALE, NaN)).toThrow(EvalInputError);
+  });
+
+  it("accepts thresholdOverride at range boundaries", () => {
+    expect(computeScore(0.5, CONTINUOUS_SCALE, 0).label).toBe("pass");
+    expect(computeScore(0.5, CONTINUOUS_SCALE, 1).label).toBe("fail");
+  });
+
+  it("throws for likert thresholdOverride out of range", () => {
+    expect(() => computeScore(3, LIKERT_SCALE, 0)).toThrow(EvalInputError);
+    expect(() => computeScore(3, LIKERT_SCALE, 6)).toThrow(EvalInputError);
   });
 });

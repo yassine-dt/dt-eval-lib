@@ -8,6 +8,12 @@ export enum BuiltInMetric {
   Relevance = "relevance",
   FactualAccuracy = "factual-accuracy",
   Coherence = "coherence",
+  ContextRelevance = "context-relevance",
+  AnswerCompleteness = "answer-completeness",
+  PromptInjection = "prompt-injection",
+  Bias = "bias",
+  SummarizationQuality = "summarization-quality",
+  Conciseness = "conciseness",
 }
 
 export interface PromptDefinition {
