@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types.js";
-import { EvalTimeoutError, EvalResponseError } from "../../errors.js";
+import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
+import { EvalTimeoutError, EvalResponseError } from "../../errors";
 
 interface ToolDefinition {
   name: string;

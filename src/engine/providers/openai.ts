@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types.js";
-import { EvalTimeoutError, EvalResponseError } from "../../errors.js";
+import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
+import { EvalTimeoutError, EvalResponseError } from "../../errors";
 
 interface ResponseSchema {
   name: string;

@@ -1,15 +1,16 @@
-import type { PromptDefinition } from "../prompts/types.js";
-import type { EvalConfig, EvalInput, EvalResult } from "./types.js";
-import type { LLMJudgeResponse } from "./providers/types.js";
-import { getPrompt } from "../prompts/index.js";
-import { computeScore } from "../scoring/index.js";
-import { createProvider } from "./providers/index.js";
+import type { PromptDefinition } from "../prompts/types";
+import type { BuiltInMetric } from "../prompts/types";
+import type { EvalConfig, EvalInput, EvalResult } from "./types";
+import type { LLMJudgeResponse } from "./providers/types";
+import { getPrompt } from "../prompts/index";
+import { computeScore } from "../scoring/index";
+import { createProvider } from "./providers/index";
 import {
   EvalConfigError,
   EvalInputError,
   EvalTimeoutError,
   EvalResponseError,
-} from "../errors.js";
+} from "../errors";
 
 const FIELD_MAP: Record<string, keyof EvalInput> = {
   input: "input",
@@ -24,32 +25,34 @@ const FIELD_MAP: Record<string, keyof EvalInput> = {
  * calls the LLM provider, and computes the final score.
  */
 export async function evaluate(
-  metric: string | PromptDefinition,
+  metric: BuiltInMetric | PromptDefinition,
   input: EvalInput,
   config: EvalConfig,
 ): Promise<EvalResult> {
+  const { provider: providerOptions, scoring } = config;
+
   // 1. Resolve prompt
-  const prompt = typeof metric === "string" ? await getPrompt(metric) : metric;
+  const prompt = typeof metric === "string" ? getPrompt(metric) : metric;
 
   // 2. Validate input — check required fields
   validateInput(input, prompt);
 
   // 3. Validate config — check API key before creating provider
-  const apiKey = config.apiKey || process.env[getEnvKey(config.provider)];
+  const apiKey = providerOptions.apiKey || process.env[getEnvKey(providerOptions.provider)];
   if (!apiKey) {
     throw new EvalConfigError(
-      `Missing API key for ${config.provider}. Provide it via config.apiKey or set the ${getEnvKey(config.provider)} environment variable.`,
+      `Missing API key for ${providerOptions.provider}. Provide it via provider.apiKey or set the ${getEnvKey(providerOptions.provider)} environment variable.`,
     );
   }
 
   // 4. Create provider
-  const provider = createProvider(config);
+  const provider = createProvider(providerOptions);
 
   // 5. Build rendered prompt
   const renderedPrompt = renderPrompt(prompt.prompt, input);
 
   // 6. Call provider with retry logic
-  const maxRetries = config.maxRetries ?? 2;
+  const maxRetries = providerOptions.maxRetries ?? 2;
   if (maxRetries < 0 || !Number.isInteger(maxRetries)) {
     throw new EvalConfigError(
       `maxRetries must be a non-negative integer, got ${maxRetries}`,
@@ -67,7 +70,7 @@ export async function evaluate(
   const score = computeScore(
     validResponse.scoreValue,
     prompt.scoring,
-    config.thresholdOverride,
+    scoring?.thresholdOverride,
   );
 
   // 9. Return result

@@ -1,4 +1,14 @@
-import type { ScoringScale } from "../scoring/types.js";
+import type { ScoringScale } from "../scoring/types";
+
+export enum BuiltInMetric {
+  Toxicity = "toxicity",
+  Faithfulness = "faithfulness",
+  Hallucination = "hallucination",
+  PiiLeakage = "pii-leakage",
+  Relevance = "relevance",
+  FactualAccuracy = "factual-accuracy",
+  Coherence = "coherence",
+}
 
 export interface PromptDefinition {
   id: string;

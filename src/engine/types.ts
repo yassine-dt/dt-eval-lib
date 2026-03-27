@@ -1,11 +1,13 @@
-import type { Score } from "../scoring/types.js";
-import type { PromptDefinition } from "../prompts/types.js";
+import type { Score } from "../scoring/types";
+import type { PromptDefinition } from "../prompts/types";
+import type { BuiltInMetric } from "../prompts/types";
 
 /** Provider selection */
 export type Provider = "openai" | "anthropic";
 
-/** Configuration for the eval engine */
-export interface EvalConfig {
+/** Provider-related configuration */
+export interface ProviderOptions {
+  /** Which LLM provider to use */
   provider: Provider;
   /** API key — falls back to OPENAI_API_KEY / ANTHROPIC_API_KEY env vars */
   apiKey?: string;
@@ -13,12 +15,22 @@ export interface EvalConfig {
   baseUrl?: string;
   /** Model override — defaults to gpt-5.1 / claude-sonnet-4-20250514 */
   model?: string;
-  /** Override the metric's default scoring threshold */
-  thresholdOverride?: number;
   /** Request timeout in ms — default 30000 */
   timeout?: number;
   /** Max retries on transient errors — default 2 */
   maxRetries?: number;
+}
+
+/** Scoring-related configuration */
+export interface ScoringOptions {
+  /** Override the metric's default scoring threshold */
+  thresholdOverride?: number;
+}
+
+/** Top-level evaluation configuration */
+export interface EvalConfig {
+  provider: ProviderOptions;
+  scoring?: ScoringOptions;
 }
 
 /** Input to an evaluation */
@@ -44,7 +56,7 @@ export interface EvalResult {
 
 /** Main evaluation function signature */
 export type EvaluateFn = (
-  metric: string | PromptDefinition,
+  metric: BuiltInMetric | PromptDefinition,
   input: EvalInput,
   config: EvalConfig,
 ) => Promise<EvalResult>;

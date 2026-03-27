@@ -1,16 +1,13 @@
 // Public API — dt-eval-lib
 
 // Main eval function
-export { evaluate } from "./engine/index.js";
+export { evaluate } from "./engine/index";
 
 // Scoring
-export { computeScore, BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scoring/index.js";
+export { computeScore, BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scoring/index";
 
 // Prompt catalog
-export { getPrompt, listPrompts } from "./prompts/index.js";
-
-// Custom prompts
-export { createCustomPrompt, deleteCustomPrompt, loadCustomPrompts } from "./custom/index.js";
+export { getPrompt, listPrompts, BuiltInMetric } from "./prompts/index";
 
 // Types
 export type {
@@ -19,13 +16,13 @@ export type {
   Score,
   PromptDefinition,
   Provider,
+  ProviderOptions,
+  ScoringOptions,
   EvalConfig,
   EvalInput,
   EvalResult,
   EvaluateFn,
-  CreateCustomPromptInput,
-  CustomPromptConfig,
-} from "./types.js";
+} from "./types";
 
 // Errors
 export {
@@ -35,4 +32,4 @@ export {
   EvalInputError,
   EvalTimeoutError,
   EvalResponseError,
-} from "./errors.js";
+} from "./errors";

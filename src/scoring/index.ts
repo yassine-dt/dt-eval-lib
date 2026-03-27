@@ -1,5 +1,5 @@
-import type { ScoringScale, Score } from "./types.js";
-import { EvalInputError } from "../errors.js";
+import type { ScoringScale, Score } from "./types";
+import { EvalInputError } from "../errors";
 
 /**
  * Compute a score from a raw value using a scoring scale.
@@ -31,5 +31,5 @@ export function computeScore(
   return { value, label };
 }
 
-export { BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scales.js";
-export type { ScoringScaleType, ScoringScale, Score } from "./types.js";
+export { BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scales";
+export type { ScoringScaleType, ScoringScale, Score } from "./types";

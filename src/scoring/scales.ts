@@ -1,4 +1,4 @@
-import type { ScoringScale } from "./types.js";
+import type { ScoringScale } from "./types";
 
 export const BINARY_SCALE: ScoringScale = {
   type: "binary",

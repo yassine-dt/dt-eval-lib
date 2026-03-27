@@ -1,19 +1,14 @@
-import type { PromptDefinition } from "./types.js";
-import { PromptRegistry } from "./registry.js";
-import { EvalMetricError } from "../errors.js";
+import type { PromptDefinition } from "./types";
+import { PromptRegistry } from "./registry";
+import { EvalMetricError } from "../errors";
 
 const registry = new PromptRegistry();
-
-/** Get the singleton registry instance (for internal use by custom module) */
-export function getRegistry(): PromptRegistry {
-  return registry;
-}
 
 /**
  * Get a prompt definition by metric id.
  * Throws EvalMetricError if the metric is not found.
  */
-export async function getPrompt(id: string): Promise<PromptDefinition> {
+export function getPrompt(id: string): PromptDefinition {
   const prompt = registry.get(id);
   if (!prompt) {
     const available = registry.list().map((p) => p.id).join(", ");
@@ -25,11 +20,12 @@ export async function getPrompt(id: string): Promise<PromptDefinition> {
 }
 
 /**
- * List all available prompt definitions (built-in + custom).
+ * List all available prompt definitions.
  */
-export async function listPrompts(): Promise<PromptDefinition[]> {
+export function listPrompts(): PromptDefinition[] {
   return registry.list();
 }
 
-export { PromptRegistry } from "./registry.js";
-export type { PromptDefinition } from "./types.js";
+export { PromptRegistry } from "./registry";
+export { BuiltInMetric } from "./types";
+export type { PromptDefinition } from "./types";
