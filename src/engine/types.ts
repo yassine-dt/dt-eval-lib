@@ -38,7 +38,7 @@ export interface EvalResult {
   score: Score;
   explanation: {
     summary: string;
-    [key: string]: unknown;
+    reasoning: string;
   };
 }
 

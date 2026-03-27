@@ -50,6 +50,11 @@ export async function evaluate(
 
   // 6. Call provider with retry logic
   const maxRetries = config.maxRetries ?? 2;
+  if (maxRetries < 0 || !Number.isInteger(maxRetries)) {
+    throw new EvalConfigError(
+      `maxRetries must be a non-negative integer, got ${maxRetries}`,
+    );
+  }
   const response = await callWithRetry(
     () => provider.call(renderedPrompt),
     maxRetries,

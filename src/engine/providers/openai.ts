@@ -2,20 +2,31 @@ import OpenAI from "openai";
 import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types.js";
 import { EvalTimeoutError, EvalResponseError } from "../../errors.js";
 
+interface ResponseSchema {
+  name: string;
+  strict: boolean;
+  schema: {
+    type: string;
+    properties: Record<string, { type: string; description: string }>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+}
+
 const RESPONSE_SCHEMA = {
   name: "eval_response",
   strict: true,
   schema: {
-    type: "object" as const,
+    type: "object",
     properties: {
-      scoreValue: { type: "number" as const, description: "The evaluation score" },
-      summary: { type: "string" as const, description: "Brief summary of the evaluation" },
-      reasoning: { type: "string" as const, description: "Detailed reasoning for the score" },
+      scoreValue: { type: "number", description: "The evaluation score" },
+      summary: { type: "string", description: "Brief summary of the evaluation" },
+      reasoning: { type: "string", description: "Detailed reasoning for the score" },
     },
     required: ["scoreValue", "summary", "reasoning"],
     additionalProperties: false,
   },
-};
+} as const satisfies ResponseSchema;
 
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;

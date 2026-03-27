@@ -2,19 +2,29 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types.js";
 import { EvalTimeoutError, EvalResponseError } from "../../errors.js";
 
+interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: {
+    type: string;
+    properties: Record<string, { type: string; description: string }>;
+    required: readonly string[];
+  };
+}
+
 const EVAL_TOOL = {
-  name: "submit_evaluation" as const,
+  name: "submit_evaluation",
   description: "Submit the evaluation result with score, summary, and reasoning",
   input_schema: {
-    type: "object" as const,
+    type: "object",
     properties: {
-      scoreValue: { type: "number" as const, description: "The evaluation score" },
-      summary: { type: "string" as const, description: "Brief summary of the evaluation" },
-      reasoning: { type: "string" as const, description: "Detailed reasoning for the score" },
+      scoreValue: { type: "number", description: "The evaluation score" },
+      summary: { type: "string", description: "Brief summary of the evaluation" },
+      reasoning: { type: "string", description: "Detailed reasoning for the score" },
     },
-    required: ["scoreValue", "summary", "reasoning"] as const,
+    required: ["scoreValue", "summary", "reasoning"],
   },
-};
+} as const satisfies ToolDefinition;
 
 export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;

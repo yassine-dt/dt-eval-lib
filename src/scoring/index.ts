@@ -17,6 +17,13 @@ export function computeScore(
     );
   }
 
+  if (thresholdOverride !== undefined &&
+      (Number.isNaN(thresholdOverride) || thresholdOverride < min || thresholdOverride > max)) {
+    throw new EvalInputError(
+      `Threshold override ${thresholdOverride} is out of range [${min}, ${max}]`,
+    );
+  }
+
   const threshold =
     thresholdOverride !== undefined ? thresholdOverride : scale.threshold;
   const label: Score["label"] = value >= threshold ? "pass" : "fail";
