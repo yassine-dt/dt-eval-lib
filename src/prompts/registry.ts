@@ -1,12 +1,12 @@
 import type { PromptDefinition } from "./types";
-import catalogData from "./catalog.json" with { type: "json" };
+import { catalog } from "./catalog-data";
 
 export class PromptRegistry {
   private prompts: Map<string, PromptDefinition>;
 
   constructor() {
     this.prompts = new Map();
-    for (const entry of catalogData as PromptDefinition[]) {
+    for (const entry of catalog) {
       this.prompts.set(entry.id, entry);
     }
   }
