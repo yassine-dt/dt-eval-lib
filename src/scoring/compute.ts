@@ -10,10 +10,20 @@ export function computeScore(
   scale: ScoringScale,
   thresholdOverride?: number,
 ): Score {
+  if (!Number.isFinite(value)) {
+    throw new EvalInputError(`Score value must be a finite number, got ${value}`);
+  }
+
   const [min, max] = scale.range;
   if (value < min || value > max) {
     throw new EvalInputError(
       `Score value ${value} is out of range [${min}, ${max}]`,
+    );
+  }
+
+  if (scale.type === "likert" && !Number.isInteger(value)) {
+    throw new EvalInputError(
+      `Likert scale requires integer values, got ${value}`,
     );
   }
 

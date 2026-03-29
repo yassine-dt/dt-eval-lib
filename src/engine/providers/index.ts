@@ -20,26 +20,33 @@ const ENV_BASE_URL_KEYS: Record<string, string> = {
 };
 
 export function createProvider(options: ProviderOptions): LLMProvider {
-  const apiKey = options.apiKey || process.env[ENV_KEYS[options.provider]];
+  const provider = options.provider;
+  if (provider !== "openai" && provider !== "anthropic") {
+    throw new EvalConfigError(`Unknown provider: ${provider}`);
+  }
+
+  const timeout = options.timeout ?? 30000;
+  if (!Number.isInteger(timeout) || timeout <= 0) {
+    throw new EvalConfigError(`timeout must be a positive integer (ms), got ${timeout}`);
+  }
+
+  const apiKey = options.apiKey || process.env[ENV_KEYS[provider]];
 
   if (!apiKey) {
     throw new EvalConfigError(
-      `Missing API key for ${options.provider}. Provide it via provider.apiKey or set the ${ENV_KEYS[options.provider]} environment variable.`,
+      `Missing API key for ${provider}. Provide it via provider.apiKey or set the ${ENV_KEYS[provider]} environment variable.`,
     );
   }
 
-  const baseUrl = options.baseUrl || process.env[ENV_BASE_URL_KEYS[options.provider]];
-  const model = options.model || DEFAULT_MODELS[options.provider];
-  const timeout = options.timeout ?? 30000;
+  const baseUrl = options.baseUrl || process.env[ENV_BASE_URL_KEYS[provider]];
+  const model = options.model || DEFAULT_MODELS[provider];
   const maxRetries = options.maxRetries ?? 2;
   const providerConfig = { apiKey, model, timeout, maxRetries, baseUrl };
 
-  switch (options.provider) {
+  switch (provider) {
     case "openai":
       return new OpenAIProvider(providerConfig);
     case "anthropic":
       return new AnthropicProvider(providerConfig);
-    default:
-      throw new EvalConfigError(`Unknown provider: ${options.provider}`);
   }
 }

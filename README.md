@@ -52,7 +52,7 @@ console.log(result.explanation); // { summary: "...", reasoning: "..." }
 | `hallucination` | `BuiltInMetric.Hallucination` | binary | input, output, context |
 | `pii-leakage` | `BuiltInMetric.PiiLeakage` | binary | input, output |
 | `relevance` | `BuiltInMetric.Relevance` | continuous | input, output |
-| `factual-accuracy` | `BuiltInMetric.FactualAccuracy` | continuous | input, output, expected_output |
+| `factual-accuracy` | `BuiltInMetric.FactualAccuracy` | continuous | input, output, expectedOutput |
 | `coherence` | `BuiltInMetric.Coherence` | likert (1-5) | input, output |
 | `context-relevance` | `BuiltInMetric.ContextRelevance` | continuous | input, context |
 | `answer-completeness` | `BuiltInMetric.AnswerCompleteness` | continuous | input, output |

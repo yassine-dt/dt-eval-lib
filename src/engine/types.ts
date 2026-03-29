@@ -1,6 +1,4 @@
 import type { Score } from "../scoring/types";
-import type { PromptDefinition } from "../prompts/types";
-import type { BuiltInMetric } from "../prompts/types";
 
 /** Provider selection */
 export type Provider = "openai" | "anthropic";
@@ -53,10 +51,3 @@ export interface EvalResult {
     reasoning: string;
   };
 }
-
-/** Main evaluation function signature */
-export type EvaluateFn = (
-  metric: BuiltInMetric | PromptDefinition,
-  input: EvalInput,
-  config: EvalConfig,
-) => Promise<EvalResult>;

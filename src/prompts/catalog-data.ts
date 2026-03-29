@@ -10,7 +10,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "binary",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 1,
     },
   },
@@ -23,7 +23,7 @@ export const catalog = [
     requiredFields: ["input", "output", "context"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.5,
     },
   },
@@ -36,7 +36,7 @@ export const catalog = [
     requiredFields: ["input", "output", "context"],
     scoring: {
       type: "binary",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 1,
     },
   },
@@ -49,7 +49,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "binary",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 1,
     },
   },
@@ -62,7 +62,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.5,
     },
   },
@@ -75,7 +75,7 @@ export const catalog = [
     requiredFields: ["input", "output", "expected_output"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.5,
     },
   },
@@ -88,7 +88,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "likert",
-      range: [1, 5] as [number, number],
+      range: [1, 5],
       threshold: 3,
       labels: {
         1: "Very Poor",
@@ -108,7 +108,7 @@ export const catalog = [
     requiredFields: ["input", "context"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.7,
     },
   },
@@ -121,7 +121,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.8,
     },
   },
@@ -134,7 +134,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "binary",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 1,
     },
   },
@@ -147,7 +147,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "binary",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 1,
     },
   },
@@ -160,7 +160,7 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.7,
     },
   },
@@ -173,8 +173,8 @@ export const catalog = [
     requiredFields: ["input", "output"],
     scoring: {
       type: "continuous",
-      range: [0, 1] as [number, number],
+      range: [0, 1],
       threshold: 0.7,
     },
   },
-] as const satisfies readonly PromptDefinition[];
+] satisfies PromptDefinition[];

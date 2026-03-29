@@ -1,5 +1,4 @@
-import type { PromptDefinition } from "../prompts/types";
-import type { BuiltInMetric } from "../prompts/types";
+import type { PromptDefinition, BuiltInMetric } from "../prompts/types";
 import type { EvalConfig, EvalInput, EvalResult } from "./types";
 import type { LLMJudgeResponse } from "./providers/types";
 import { getPrompt } from "../prompts/index";
@@ -31,49 +30,32 @@ export async function evaluate(
 ): Promise<EvalResult> {
   const { provider: providerOptions, scoring } = config;
 
-  // 1. Resolve prompt
   const prompt = typeof metric === "string" ? getPrompt(metric) : metric;
-
-  // 2. Validate input — check required fields
   validateInput(input, prompt);
 
-  // 3. Validate config — check API key before creating provider
-  const apiKey = providerOptions.apiKey || process.env[getEnvKey(providerOptions.provider)];
-  if (!apiKey) {
-    throw new EvalConfigError(
-      `Missing API key for ${providerOptions.provider}. Provide it via provider.apiKey or set the ${getEnvKey(providerOptions.provider)} environment variable.`,
-    );
-  }
-
-  // 4. Create provider
-  const provider = createProvider(providerOptions);
-
-  // 5. Build rendered prompt
-  const renderedPrompt = renderPrompt(prompt.prompt, input);
-
-  // 6. Call provider with retry logic
   const maxRetries = providerOptions.maxRetries ?? 2;
   if (maxRetries < 0 || !Number.isInteger(maxRetries)) {
     throw new EvalConfigError(
       `maxRetries must be a non-negative integer, got ${maxRetries}`,
     );
   }
+
+  const provider = createProvider(providerOptions);
+  const renderedPrompt = renderPrompt(prompt.prompt, input);
+
   const response = await callWithRetry(
     () => provider.call(renderedPrompt),
     maxRetries,
   );
 
-  // 7. Validate and parse response
   const validResponse = validateResponse(response);
 
-  // 8. Compute score
   const score = computeScore(
     validResponse.scoreValue,
     prompt.scoring,
     scoring?.thresholdOverride,
   );
 
-  // 9. Return result
   return {
     score,
     explanation: {
@@ -87,7 +69,7 @@ function validateInput(input: EvalInput, prompt: PromptDefinition): void {
   const missing: string[] = [];
   for (const field of prompt.requiredFields) {
     const inputKey = FIELD_MAP[field];
-    if (!inputKey || !input[inputKey]) {
+    if (!inputKey || input[inputKey] == null) {
       missing.push(field);
     }
   }
@@ -100,22 +82,30 @@ function validateInput(input: EvalInput, prompt: PromptDefinition): void {
 
 function renderPrompt(template: string, input: EvalInput): string {
   let rendered = template;
-  rendered = rendered.replace(/\{\{input\}\}/g, input.input);
-  rendered = rendered.replace(/\{\{output\}\}/g, input.output);
+  rendered = rendered.replace(/\{\{input\}\}/g, () => input.input);
+  rendered = rendered.replace(/\{\{output\}\}/g, () => input.output);
   if (input.context) {
-    rendered = rendered.replace(/\{\{context\}\}/g, input.context);
+    rendered = rendered.replace(/\{\{context\}\}/g, () => input.context!);
   }
   if (input.expectedOutput) {
-    rendered = rendered.replace(/\{\{expected_output\}\}/g, input.expectedOutput);
+    rendered = rendered.replace(/\{\{expected_output\}\}/g, () => input.expectedOutput!);
+  }
+  const unreplaced = rendered.match(/\{\{[\w_]+\}\}/g);
+  if (unreplaced) {
+    throw new EvalInputError(
+      `Unreplaced placeholders in prompt: ${unreplaced.join(", ")}. Ensure all required fields are provided.`,
+    );
   }
   return rendered;
 }
 
-function validateResponse(response: any): LLMJudgeResponse {
+function validateResponse(response: unknown): LLMJudgeResponse {
+  const res = response as Record<string, unknown>;
   if (
-    typeof response?.scoreValue !== "number" ||
-    typeof response?.summary !== "string" ||
-    typeof response?.reasoning !== "string"
+    typeof res?.scoreValue !== "number" ||
+    !Number.isFinite(res.scoreValue) ||
+    typeof res?.summary !== "string" ||
+    typeof res?.reasoning !== "string"
   ) {
     throw new EvalResponseError(
       `Malformed LLM response: expected { scoreValue: number, summary: string, reasoning: string }, got ${JSON.stringify(response)}`,
@@ -124,35 +114,47 @@ function validateResponse(response: any): LLMJudgeResponse {
   return response as LLMJudgeResponse;
 }
 
-function isTransientError(error: any): boolean {
+function isTransientError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const err = error as Record<string, unknown>;
+  const status = typeof err.status === "number" ? err.status : undefined;
+  const code = typeof err.code === "string" ? err.code : undefined;
   // HTTP 429 (rate limit) or 5xx (server error)
-  if (typeof error?.status === "number") {
-    return error.status === 429 || error.status >= 500;
+  if (status !== undefined) {
+    return status === 429 || status >= 500;
   }
   // Network-level transient errors
   const transientCodes = ["ECONNRESET", "ECONNREFUSED", "EPIPE", "UND_ERR_CONNECT_TIMEOUT"];
-  if (transientCodes.includes(error?.code)) return true;
+  if (code !== undefined && transientCodes.includes(code)) return true;
   return false;
 }
 
-function isTimeoutError(error: any): boolean {
-  return (
-    error?.code === "ETIMEDOUT" ||
-    error?.type === "request-timeout" ||
-    error?.error?.type === "timeout"
-  );
+function isTimeoutError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const err = error as Record<string, unknown>;
+  const code = typeof err.code === "string" ? err.code : undefined;
+  const type = typeof err.type === "string" ? err.type : undefined;
+  const nestedError =
+    typeof err.error === "object" && err.error !== null
+      ? (err.error as Record<string, unknown>)
+      : undefined;
+  const nestedType =
+    nestedError && typeof nestedError.type === "string"
+      ? nestedError.type
+      : undefined;
+  return code === "ETIMEDOUT" || type === "request-timeout" || nestedType === "timeout";
 }
 
 async function callWithRetry(
   fn: () => Promise<LLMJudgeResponse>,
   maxRetries: number,
 ): Promise<LLMJudgeResponse> {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
 
       // Don't retry non-transient errors
@@ -161,16 +163,13 @@ async function callWithRetry(
       }
 
       if (isTimeoutError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
         throw new EvalTimeoutError(
-          `Request timed out: ${error.message}`,
+          `Request timed out: ${message}`,
         );
       }
 
       if (!isTransientError(error) || attempt === maxRetries) {
-        // Exhausted retries or non-retryable
-        if (attempt === maxRetries && isTransientError(error)) {
-          throw error;
-        }
         throw error;
       }
 
@@ -185,12 +184,4 @@ async function callWithRetry(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getEnvKey(provider: string): string {
-  const keys: Record<string, string> = {
-    openai: "OPENAI_API_KEY",
-    anthropic: "ANTHROPIC_API_KEY",
-  };
-  return keys[provider] || `${provider.toUpperCase()}_API_KEY`;
 }

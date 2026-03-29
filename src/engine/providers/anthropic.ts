@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
 import { EvalTimeoutError, EvalResponseError } from "../../errors";
+import { validateLLMResponse } from "./validate";
 
 interface ToolDefinition {
   name: string;
@@ -53,36 +54,22 @@ export class AnthropicProvider implements LLMProvider {
       });
 
       const toolBlock = response.content.find(
-        (block: any) => block.type === "tool_use" && block.name === "submit_evaluation",
+        (block): block is Anthropic.Messages.ToolUseBlock =>
+          block.type === "tool_use" && block.name === "submit_evaluation",
       );
-      if (!toolBlock || toolBlock.type !== "tool_use") {
+      if (!toolBlock) {
         throw new EvalResponseError("Anthropic did not return the expected tool use response");
       }
 
-      return this.validateResponse(toolBlock.input);
-    } catch (error: any) {
+      return validateLLMResponse(toolBlock.input);
+    } catch (error: unknown) {
       if (error instanceof EvalResponseError) throw error;
-      if (error?.code === "ETIMEDOUT" || error?.error?.type === "timeout") {
+      const err = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : {};
+      const nested = typeof err.error === "object" && err.error !== null ? (err.error as Record<string, unknown>) : undefined;
+      if (err.code === "ETIMEDOUT" || nested?.type === "timeout") {
         throw new EvalTimeoutError(`Anthropic request timed out after ${this.timeout}ms`);
       }
       throw error;
     }
-  }
-
-  private validateResponse(parsed: any): LLMJudgeResponse {
-    if (
-      typeof parsed.scoreValue !== "number" ||
-      typeof parsed.summary !== "string" ||
-      typeof parsed.reasoning !== "string"
-    ) {
-      throw new EvalResponseError(
-        `Malformed LLM response: expected { scoreValue: number, summary: string, reasoning: string }, got ${JSON.stringify(parsed)}`,
-      );
-    }
-    return {
-      scoreValue: parsed.scoreValue,
-      summary: parsed.summary,
-      reasoning: parsed.reasoning,
-    };
   }
 }

@@ -14,15 +14,18 @@ export type {
   ScoringScaleType,
   ScoringScale,
   Score,
-  PromptDefinition,
+} from "./scoring/types";
+
+export type { PromptDefinition } from "./prompts/types";
+
+export type {
   Provider,
   ProviderOptions,
   ScoringOptions,
   EvalConfig,
   EvalInput,
   EvalResult,
-  EvaluateFn,
-} from "./types";
+} from "./engine/types";
 
 // Errors
 export {

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
 import { EvalTimeoutError, EvalResponseError } from "../../errors";
+import { validateLLMResponse } from "./validate";
 
 interface ResponseSchema {
   name: string;
@@ -8,7 +9,7 @@ interface ResponseSchema {
   schema: {
     type: string;
     properties: Record<string, { type: string; description: string }>;
-    required: string[];
+    required: readonly string[];
     additionalProperties: boolean;
   };
 }
@@ -67,30 +68,14 @@ export class OpenAIProvider implements LLMProvider {
       }
 
       const parsed = JSON.parse(content);
-      return this.validateResponse(parsed);
-    } catch (error: any) {
+      return validateLLMResponse(parsed);
+    } catch (error: unknown) {
       if (error instanceof EvalResponseError) throw error;
-      if (error?.code === "ETIMEDOUT" || error?.type === "request-timeout") {
+      const err = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : {};
+      if (err.code === "ETIMEDOUT" || err.type === "request-timeout") {
         throw new EvalTimeoutError(`OpenAI request timed out after ${this.timeout}ms`);
       }
       throw error;
     }
-  }
-
-  private validateResponse(parsed: any): LLMJudgeResponse {
-    if (
-      typeof parsed.scoreValue !== "number" ||
-      typeof parsed.summary !== "string" ||
-      typeof parsed.reasoning !== "string"
-    ) {
-      throw new EvalResponseError(
-        `Malformed LLM response: expected { scoreValue: number, summary: string, reasoning: string }, got ${JSON.stringify(parsed)}`,
-      );
-    }
-    return {
-      scoreValue: parsed.scoreValue,
-      summary: parsed.summary,
-      reasoning: parsed.reasoning,
-    };
   }
 }
