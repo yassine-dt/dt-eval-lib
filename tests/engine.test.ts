@@ -228,14 +228,14 @@ describe("evaluate() — prompt rendering", () => {
     };
     await evaluate(BuiltInMetric.FactualAccuracy, input, baseConfig);
     expect(capturedPrompt).toContain("Paris is the capital of France.");
-    expect(capturedPrompt).not.toContain("{{expected_output}}");
+    expect(capturedPrompt).not.toContain("{{expectedOutput}}");
   });
 
   it("omits optional placeholders when fields not provided", async () => {
     await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
-    // toxicity only requires input + output, no context/expected_output placeholders in its prompt
+    // toxicity only requires input + output, no context/expectedOutput placeholders in its prompt
     expect(capturedPrompt).not.toContain("{{context}}");
-    expect(capturedPrompt).not.toContain("{{expected_output}}");
+    expect(capturedPrompt).not.toContain("{{expectedOutput}}");
   });
 });
 
@@ -256,7 +256,7 @@ describe("evaluate() — input validation", () => {
     ).rejects.toBeInstanceOf(EvalInputError);
   });
 
-  it("throws EvalInputError when required field 'expected_output' is missing for factual-accuracy", async () => {
+  it("throws EvalInputError when required field 'expectedOutput' is missing for factual-accuracy", async () => {
     await expect(
       evaluate(BuiltInMetric.FactualAccuracy, baseInput, baseConfig),
     ).rejects.toBeInstanceOf(EvalInputError);
@@ -372,8 +372,8 @@ describe("provider factory", () => {
     vi.restoreAllMocks();
   });
 
-  it("creates OpenAI provider when provider is 'openai'", () => {
-    const provider = createProvider({
+  it("creates OpenAI provider when provider is 'openai'", async () => {
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "test-key",
       timeout: 30000,
@@ -382,8 +382,8 @@ describe("provider factory", () => {
     expect(provider).toBeInstanceOf(OpenAIProvider);
   });
 
-  it("creates Anthropic provider when provider is 'anthropic'", () => {
-    const provider = createProvider({
+  it("creates Anthropic provider when provider is 'anthropic'", async () => {
+    const provider = await createProvider({
       provider: "anthropic",
       apiKey: "test-key",
       timeout: 30000,
@@ -392,9 +392,9 @@ describe("provider factory", () => {
     expect(provider).toBeInstanceOf(AnthropicProvider);
   });
 
-  it("uses explicit apiKey over env var", () => {
+  it("uses explicit apiKey over env var", async () => {
     process.env.OPENAI_API_KEY = "env-key";
-    const provider = createProvider({
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "explicit-key",
       timeout: 30000,
@@ -404,9 +404,9 @@ describe("provider factory", () => {
     delete process.env.OPENAI_API_KEY;
   });
 
-  it("falls back to env var when apiKey not provided", () => {
+  it("falls back to env var when apiKey not provided", async () => {
     process.env.OPENAI_API_KEY = "env-key";
-    const provider = createProvider({
+    const provider = await createProvider({
       provider: "openai",
       timeout: 30000,
       maxRetries: 2,
@@ -415,8 +415,8 @@ describe("provider factory", () => {
     delete process.env.OPENAI_API_KEY;
   });
 
-  it("uses custom model when specified", () => {
-    const provider = createProvider({
+  it("uses custom model when specified", async () => {
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "test-key",
       model: "gpt-4-turbo",
@@ -426,8 +426,8 @@ describe("provider factory", () => {
     expect(provider).toBeInstanceOf(OpenAIProvider);
   });
 
-  it("uses default model when not specified", () => {
-    const provider = createProvider({
+  it("uses default model when not specified", async () => {
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "test-key",
       timeout: 30000,
@@ -436,8 +436,8 @@ describe("provider factory", () => {
     expect(provider).toBeInstanceOf(OpenAIProvider);
   });
 
-  it("uses explicit baseUrl from config", () => {
-    const provider = createProvider({
+  it("uses explicit baseUrl from config", async () => {
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "test-key",
       baseUrl: "https://custom.api.example.com/v1",
@@ -447,9 +447,9 @@ describe("provider factory", () => {
     expect(provider).toBeInstanceOf(OpenAIProvider);
   });
 
-  it("falls back to OPENAI_BASE_URL env var", () => {
+  it("falls back to OPENAI_BASE_URL env var", async () => {
     process.env.OPENAI_BASE_URL = "https://env.api.example.com/v1";
-    const provider = createProvider({
+    const provider = await createProvider({
       provider: "openai",
       apiKey: "test-key",
       timeout: 30000,
@@ -459,9 +459,9 @@ describe("provider factory", () => {
     delete process.env.OPENAI_BASE_URL;
   });
 
-  it("falls back to ANTHROPIC_BASE_URL env var", () => {
+  it("falls back to ANTHROPIC_BASE_URL env var", async () => {
     process.env.ANTHROPIC_BASE_URL = "https://env.api.example.com";
-    const provider = createProvider({
+    const provider = await createProvider({
       provider: "anthropic",
       apiKey: "test-key",
       timeout: 30000,

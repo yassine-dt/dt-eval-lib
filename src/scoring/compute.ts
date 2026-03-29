@@ -27,6 +27,18 @@ export function computeScore(
     );
   }
 
+  // Validate scale.threshold
+  if (!Number.isFinite(scale.threshold) || scale.threshold < min || scale.threshold > max) {
+    throw new EvalInputError(
+      `Scale threshold ${scale.threshold} is out of range [${min}, ${max}]`,
+    );
+  }
+  if (scale.type === "likert" && !Number.isInteger(scale.threshold)) {
+    throw new EvalInputError(
+      `Likert scale requires an integer threshold, got ${scale.threshold}`,
+    );
+  }
+
   if (thresholdOverride !== undefined &&
       (Number.isNaN(thresholdOverride) || thresholdOverride < min || thresholdOverride > max)) {
     throw new EvalInputError(

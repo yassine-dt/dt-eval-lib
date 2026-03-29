@@ -62,7 +62,7 @@ describe("prompt catalog", () => {
     { id: BuiltInMetric.Hallucination, fields: ["input", "output", "context"] },
     { id: BuiltInMetric.PiiLeakage, fields: ["input", "output"] },
     { id: BuiltInMetric.Relevance, fields: ["input", "output"] },
-    { id: BuiltInMetric.FactualAccuracy, fields: ["input", "output", "expected_output"] },
+    { id: BuiltInMetric.FactualAccuracy, fields: ["input", "output", "expectedOutput"] },
     { id: BuiltInMetric.Coherence, fields: ["input", "output"] },
     { id: BuiltInMetric.ContextRelevance, fields: ["input", "context"] },
     { id: BuiltInMetric.AnswerCompleteness, fields: ["input", "output"] },

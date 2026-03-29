@@ -22,10 +22,10 @@ export interface PromptDefinition {
   version: string;
   /** Description of what this metric evaluates */
   description: string;
-  /** The evaluation prompt template — uses {{input}}, {{output}}, {{context}}, {{expected_output}} placeholders */
+  /** The evaluation prompt template — uses {{input}}, {{output}}, {{context}}, {{expectedOutput}} placeholders */
   prompt: string;
   /** Which input fields this prompt requires */
-  requiredFields: ("input" | "output" | "context" | "expected_output")[];
+  requiredFields: ("input" | "output" | "context" | "expectedOutput")[];
   /** The scoring scale to use */
   scoring: ScoringScale;
 }

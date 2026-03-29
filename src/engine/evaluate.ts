@@ -12,13 +12,6 @@ import {
   EvalResponseError,
 } from "../errors";
 
-const FIELD_MAP: Record<string, keyof EvalInput> = {
-  input: "input",
-  output: "output",
-  context: "context",
-  expected_output: "expectedOutput",
-};
-
 /**
  * Main evaluation function.
  * Resolves the metric, validates input, renders the prompt,
@@ -41,7 +34,7 @@ export async function evaluate(
     );
   }
 
-  const provider = createProvider(providerOptions);
+  const provider = await createProvider(providerOptions);
   const renderedPrompt = renderPrompt(prompt.prompt, input);
 
   const response = await callWithRetry(
@@ -69,8 +62,7 @@ export async function evaluate(
 function validateInput(input: EvalInput, prompt: PromptDefinition): void {
   const missing: string[] = [];
   for (const field of prompt.requiredFields) {
-    const inputKey = FIELD_MAP[field];
-    if (!inputKey || input[inputKey] == null) {
+    if (input[field as keyof EvalInput] == null) {
       missing.push(field);
     }
   }
@@ -85,11 +77,11 @@ function renderPrompt(template: string, input: EvalInput): string {
   let rendered = template;
   rendered = rendered.replace(/\{\{input\}\}/g, () => input.input);
   rendered = rendered.replace(/\{\{output\}\}/g, () => input.output);
-  if (input.context) {
+  if (input.context != null) {
     rendered = rendered.replace(/\{\{context\}\}/g, () => input.context!);
   }
-  if (input.expectedOutput) {
-    rendered = rendered.replace(/\{\{expected_output\}\}/g, () => input.expectedOutput!);
+  if (input.expectedOutput != null) {
+    rendered = rendered.replace(/\{\{expectedOutput\}\}/g, () => input.expectedOutput!);
   }
   const unreplaced = rendered.match(/\{\{[\w_]+\}\}/g);
   if (unreplaced) {

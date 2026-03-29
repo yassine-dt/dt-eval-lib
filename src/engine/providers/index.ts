@@ -1,7 +1,5 @@
 import type { ProviderOptions } from "../types";
 import type { LLMProvider } from "./types";
-import { OpenAIProvider } from "./openai";
-import { AnthropicProvider } from "./anthropic";
 import { EvalConfigError } from "../../errors";
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -19,7 +17,7 @@ const ENV_BASE_URL_KEYS: Record<string, string> = {
   anthropic: "ANTHROPIC_BASE_URL",
 };
 
-export function createProvider(options: ProviderOptions): LLMProvider {
+export async function createProvider(options: ProviderOptions): Promise<LLMProvider> {
   const provider = options.provider;
   if (provider !== "openai" && provider !== "anthropic") {
     throw new EvalConfigError(`Unknown provider: ${provider}`);
@@ -44,9 +42,13 @@ export function createProvider(options: ProviderOptions): LLMProvider {
   const providerConfig = { apiKey, model, timeout, maxRetries, baseUrl };
 
   switch (provider) {
-    case "openai":
+    case "openai": {
+      const { OpenAIProvider } = await import("./openai");
       return new OpenAIProvider(providerConfig);
-    case "anthropic":
+    }
+    case "anthropic": {
+      const { AnthropicProvider } = await import("./anthropic");
       return new AnthropicProvider(providerConfig);
+    }
   }
 }

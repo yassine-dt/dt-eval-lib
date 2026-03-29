@@ -61,6 +61,8 @@ console.log(result.explanation); // { summary: "...", reasoning: "..." }
 | `summarization-quality` | `BuiltInMetric.SummarizationQuality` | continuous | input, output |
 | `conciseness` | `BuiltInMetric.Conciseness` | continuous | input, output |
 
+> **Note:** The "Required Fields" column lists the `EvalInput` property names you pass to `evaluate()`.
+
 ## Providers
 
 Supports **OpenAI** and **Anthropic**. Configure via API key in code or environment variable.

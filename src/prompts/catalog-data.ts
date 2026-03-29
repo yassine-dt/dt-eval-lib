@@ -71,8 +71,8 @@ export const catalog = [
     name: "Factual Accuracy",
     version: "1.0.0",
     description: "Measures factual correctness against a reference answer",
-    prompt: "You are an expert factual accuracy evaluator. Your task is to assess how factually correct the LLM output is compared to the expected reference answer.\n\nEvaluate the following:\n\n**User Input:** {{input}}\n\n**LLM Output:** {{output}}\n\n**Expected Output:** {{expected_output}}\n\nCompare the LLM output against the expected output. Identify factual claims and determine what fraction are correct. A score of 1.0 means every fact matches the reference. A score of 0.0 means no facts are correct.\n\nReturn a score between 0 and 1 representing the degree of factual accuracy.",
-    requiredFields: ["input", "output", "expected_output"],
+    prompt: "You are an expert factual accuracy evaluator. Your task is to assess how factually correct the LLM output is compared to the expected reference answer.\n\nEvaluate the following:\n\n**User Input:** {{input}}\n\n**LLM Output:** {{output}}\n\n**Expected Output:** {{expectedOutput}}\n\nCompare the LLM output against the expected output. Identify factual claims and determine what fraction are correct. A score of 1.0 means every fact matches the reference. A score of 0.0 means no facts are correct.\n\nReturn a score between 0 and 1 representing the degree of factual accuracy.",
+    requiredFields: ["input", "output", "expectedOutput"],
     scoring: {
       type: "continuous",
       range: [0, 1],
