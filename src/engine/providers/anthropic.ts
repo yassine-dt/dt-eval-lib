@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
+import type { LLMJudgeResponse, ProviderConfig } from "./types";
+import { BaseProvider } from "./base";
 import { EvalTimeoutError, EvalResponseError } from "../../errors";
 import { validateLLMResponse } from "./validate";
 
@@ -27,19 +28,16 @@ const EVAL_TOOL = {
   },
 } as const satisfies ToolDefinition;
 
-export class AnthropicProvider implements LLMProvider {
+export class AnthropicProvider extends BaseProvider {
   private client: Anthropic;
-  private model: string;
-  private timeout: number;
 
   constructor(config: ProviderConfig) {
+    super(config);
     this.client = new Anthropic({
-      apiKey: config.apiKey,
-      baseURL: config.baseUrl,
-      timeout: config.timeout,
+      apiKey: this.apiKey,
+      baseURL: this.baseUrl,
+      timeout: this.timeout,
     });
-    this.model = config.model;
-    this.timeout = config.timeout;
   }
 
   async call(prompt: string): Promise<LLMJudgeResponse> {

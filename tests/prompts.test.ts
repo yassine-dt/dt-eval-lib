@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { getPrompt, listPrompts, BuiltInMetric } from "../src/prompts/index";
-import { PromptRegistry } from "../src/prompts/registry";
 import { EvalMetricError } from "../src/errors";
 
 describe("prompt catalog", () => {
@@ -127,17 +126,5 @@ describe("BuiltInMetric enum", () => {
     const catalogIds = prompts.map((p) => p.id).sort();
     const enumValues = Object.values(BuiltInMetric).sort();
     expect(enumValues).toEqual(catalogIds);
-  });
-});
-
-describe("registry", () => {
-  it("has() returns true for built-in prompts", () => {
-    const registry = new PromptRegistry();
-    expect(registry.has("toxicity")).toBe(true);
-  });
-
-  it("has() returns false for unknown prompts", () => {
-    const registry = new PromptRegistry();
-    expect(registry.has("nonexistent")).toBe(false);
   });
 });

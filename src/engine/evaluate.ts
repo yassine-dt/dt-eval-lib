@@ -4,6 +4,7 @@ import type { LLMJudgeResponse } from "./providers/types";
 import { getPrompt } from "../prompts/index";
 import { computeScore } from "../scoring/index";
 import { createProvider } from "./providers/index";
+import { validateLLMResponse } from "./providers/validate";
 import {
   EvalConfigError,
   EvalInputError,
@@ -48,7 +49,7 @@ export async function evaluate(
     maxRetries,
   );
 
-  const validResponse = validateResponse(response);
+  const validResponse = validateLLMResponse(response);
 
   const score = computeScore(
     validResponse.scoreValue,
@@ -97,21 +98,6 @@ function renderPrompt(template: string, input: EvalInput): string {
     );
   }
   return rendered;
-}
-
-function validateResponse(response: unknown): LLMJudgeResponse {
-  const res = response as Record<string, unknown>;
-  if (
-    typeof res?.scoreValue !== "number" ||
-    !Number.isFinite(res.scoreValue) ||
-    typeof res?.summary !== "string" ||
-    typeof res?.reasoning !== "string"
-  ) {
-    throw new EvalResponseError(
-      `Malformed LLM response: expected { scoreValue: number, summary: string, reasoning: string }, got ${JSON.stringify(response)}`,
-    );
-  }
-  return response as LLMJudgeResponse;
 }
 
 function isTransientError(error: unknown): boolean {

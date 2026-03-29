@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import type { LLMProvider, LLMJudgeResponse, ProviderConfig } from "./types";
+import type { LLMJudgeResponse, ProviderConfig } from "./types";
+import { BaseProvider } from "./base";
 import { EvalTimeoutError, EvalResponseError } from "../../errors";
 import { validateLLMResponse } from "./validate";
 
@@ -29,19 +30,16 @@ const RESPONSE_SCHEMA = {
   },
 } as const satisfies ResponseSchema;
 
-export class OpenAIProvider implements LLMProvider {
+export class OpenAIProvider extends BaseProvider {
   private client: OpenAI;
-  private model: string;
-  private timeout: number;
 
   constructor(config: ProviderConfig) {
+    super(config);
     this.client = new OpenAI({
-      apiKey: config.apiKey,
-      baseURL: config.baseUrl,
-      timeout: config.timeout,
+      apiKey: this.apiKey,
+      baseURL: this.baseUrl,
+      timeout: this.timeout,
     });
-    this.model = config.model;
-    this.timeout = config.timeout;
   }
 
   async call(prompt: string): Promise<LLMJudgeResponse> {
