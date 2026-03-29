@@ -178,3 +178,15 @@ export const catalog = [
     },
   },
 ] satisfies PromptDefinition[];
+
+function deepFreeze<T extends object>(obj: T): T {
+  Object.freeze(obj);
+  for (const value of Object.values(obj)) {
+    if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
+      deepFreeze(value);
+    }
+  }
+  return obj;
+}
+
+deepFreeze(catalog);
