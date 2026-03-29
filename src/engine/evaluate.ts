@@ -1,16 +1,10 @@
-import type { PromptDefinition, BuiltInMetric } from "../prompts/types";
-import type { EvalConfig, EvalInput, EvalResult } from "./types";
-import type { LLMJudgeResponse } from "./providers/types";
+import { EvalConfigError, EvalInputError, EvalResponseError, EvalTimeoutError } from "../errors";
 import { getPrompt } from "../prompts/index";
+import type { BuiltInMetric, PromptDefinition } from "../prompts/types";
 import { computeScore } from "../scoring/index";
 import { createProvider } from "./providers/index";
-import { validateLLMResponse } from "./providers/validate";
-import {
-  EvalConfigError,
-  EvalInputError,
-  EvalTimeoutError,
-  EvalResponseError,
-} from "../errors";
+import type { LLMJudgeResponse } from "./providers/types";
+import type { EvalConfig, EvalInput, EvalResult } from "./types";
 
 /**
  * Main evaluation function.
@@ -29,32 +23,21 @@ export async function evaluate(
 
   const maxRetries = providerOptions.maxRetries ?? 2;
   if (maxRetries < 0 || !Number.isInteger(maxRetries)) {
-    throw new EvalConfigError(
-      `maxRetries must be a non-negative integer, got ${maxRetries}`,
-    );
+    throw new EvalConfigError(`maxRetries must be a non-negative integer, got ${maxRetries}`);
   }
 
   const provider = await createProvider(providerOptions);
   const renderedPrompt = renderPrompt(prompt.prompt, input);
 
-  const response = await callWithRetry(
-    () => provider.call(renderedPrompt),
-    maxRetries,
-  );
+  const response = await callWithRetry(() => provider.call(renderedPrompt), maxRetries);
 
-  const validResponse = validateLLMResponse(response);
-
-  const score = computeScore(
-    validResponse.scoreValue,
-    prompt.scoring,
-    scoring?.thresholdOverride,
-  );
+  const score = computeScore(response.scoreValue, prompt.scoring, scoring?.thresholdOverride);
 
   return {
     score,
     explanation: {
-      summary: validResponse.summary,
-      reasoning: validResponse.reasoning,
+      summary: response.summary,
+      reasoning: response.reasoning,
     },
   };
 }
@@ -78,10 +61,12 @@ function renderPrompt(template: string, input: EvalInput): string {
   rendered = rendered.replace(/\{\{input\}\}/g, () => input.input);
   rendered = rendered.replace(/\{\{output\}\}/g, () => input.output);
   if (input.context != null) {
-    rendered = rendered.replace(/\{\{context\}\}/g, () => input.context!);
+    const ctx = input.context;
+    rendered = rendered.replace(/\{\{context\}\}/g, () => ctx);
   }
   if (input.expectedOutput != null) {
-    rendered = rendered.replace(/\{\{expectedOutput\}\}/g, () => input.expectedOutput!);
+    const expected = input.expectedOutput;
+    rendered = rendered.replace(/\{\{expectedOutput\}\}/g, () => expected);
   }
   const unreplaced = rendered.match(/\{\{[\w_]+\}\}/g);
   if (unreplaced) {
@@ -117,9 +102,7 @@ function isTimeoutError(error: unknown): boolean {
       ? (err.error as Record<string, unknown>)
       : undefined;
   const nestedType =
-    nestedError && typeof nestedError.type === "string"
-      ? nestedError.type
-      : undefined;
+    nestedError && typeof nestedError.type === "string" ? nestedError.type : undefined;
   return code === "ETIMEDOUT" || type === "request-timeout" || nestedType === "timeout";
 }
 
@@ -142,9 +125,7 @@ async function callWithRetry(
 
       if (isTimeoutError(error)) {
         const message = error instanceof Error ? error.message : String(error);
-        throw new EvalTimeoutError(
-          `Request timed out: ${message}`,
-        );
+        throw new EvalTimeoutError(`Request timed out: ${message}`);
       }
 
       if (!isTransientError(error) || attempt === maxRetries) {
@@ -152,7 +133,7 @@ async function callWithRetry(
       }
 
       // Exponential backoff: 100ms, 200ms, 400ms...
-      const delay = 100 * Math.pow(2, attempt);
+      const delay = 100 * 2 ** attempt;
       await sleep(delay);
     }
   }

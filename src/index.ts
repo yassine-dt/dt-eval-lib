@@ -2,37 +2,32 @@
 
 // Main eval function
 export { evaluate } from "./engine/index";
-
-// Scoring
-export { computeScore, BINARY_SCALE, CONTINUOUS_SCALE, LIKERT_SCALE } from "./scoring/index";
-
-// Prompt catalog
-export { getPrompt, listPrompts, BuiltInMetric } from "./prompts/index";
-
-// Types
 export type {
-  ScoringScaleType,
-  ScoringScale,
-  Score,
-} from "./scoring/types";
-
-export type { PromptDefinition } from "./prompts/types";
-
-export type {
-  Provider,
-  ProviderOptions,
-  ScoringOptions,
   EvalConfig,
   EvalInput,
   EvalResult,
+  Provider,
+  ProviderOptions,
+  ScoringOptions,
 } from "./engine/types";
-
 // Errors
 export {
   DtEvalError,
   EvalConfigError,
-  EvalMetricError,
   EvalInputError,
-  EvalTimeoutError,
+  EvalMetricError,
   EvalResponseError,
+  EvalTimeoutError,
 } from "./errors";
+// Prompt catalog
+export { BuiltInMetric, getPrompt, listPrompts } from "./prompts/index";
+
+export type { PromptDefinition } from "./prompts/types";
+// Scoring
+export { BINARY_SCALE, CONTINUOUS_SCALE, computeScore, LIKERT_SCALE } from "./scoring/index";
+// Types
+export type {
+  Score,
+  ScoringScale,
+  ScoringScaleType,
+} from "./scoring/types";

@@ -1,6 +1,6 @@
+import { EvalConfigError } from "../../errors";
 import type { ProviderOptions } from "../types";
 import type { LLMProvider } from "./types";
-import { EvalConfigError } from "../../errors";
 
 const DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-5.1",
@@ -28,7 +28,7 @@ export async function createProvider(options: ProviderOptions): Promise<LLMProvi
     throw new EvalConfigError(`timeout must be a positive integer (ms), got ${timeout}`);
   }
 
-  const apiKey = options.apiKey || process.env[ENV_KEYS[provider]];
+  const apiKey = options.apiKey ?? process.env[ENV_KEYS[provider]];
 
   if (!apiKey) {
     throw new EvalConfigError(
@@ -36,10 +36,9 @@ export async function createProvider(options: ProviderOptions): Promise<LLMProvi
     );
   }
 
-  const baseUrl = options.baseUrl || process.env[ENV_BASE_URL_KEYS[provider]];
-  const model = options.model || DEFAULT_MODELS[provider];
-  const maxRetries = options.maxRetries ?? 2;
-  const providerConfig = { apiKey, model, timeout, maxRetries, baseUrl };
+  const baseUrl = options.baseUrl ?? process.env[ENV_BASE_URL_KEYS[provider]];
+  const model = options.model ?? DEFAULT_MODELS[provider];
+  const providerConfig = { apiKey, model, timeout, baseUrl };
 
   switch (provider) {
     case "openai": {

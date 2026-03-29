@@ -10,7 +10,6 @@ export interface ProviderConfig {
   apiKey: string;
   model: string;
   timeout: number;
-  maxRetries: number;
   baseUrl?: string;
 }
 

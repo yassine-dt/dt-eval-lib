@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMJudgeResponse, ProviderConfig } from "./types";
+import { EvalResponseError } from "../../errors";
 import { BaseProvider } from "./base";
-import { EvalTimeoutError, EvalResponseError } from "../../errors";
+import type { LLMJudgeResponse, ProviderConfig } from "./types";
 import { validateLLMResponse } from "./validate";
 
 interface ToolDefinition {
@@ -37,37 +37,29 @@ export class AnthropicProvider extends BaseProvider {
       apiKey: this.apiKey,
       baseURL: this.baseUrl,
       timeout: this.timeout,
+      maxRetries: 0,
     });
   }
 
   async call(prompt: string): Promise<LLMJudgeResponse> {
-    try {
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 1024,
-        system: "You are an expert LLM evaluation judge. Use the submit_evaluation tool to return your evaluation.",
-        messages: [{ role: "user", content: prompt }],
-        tools: [EVAL_TOOL],
-        tool_choice: { type: "tool", name: "submit_evaluation" },
-      });
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 1024,
+      system:
+        "You are an expert LLM evaluation judge. Use the submit_evaluation tool to return your evaluation.",
+      messages: [{ role: "user", content: prompt }],
+      tools: [EVAL_TOOL],
+      tool_choice: { type: "tool", name: "submit_evaluation" },
+    });
 
-      const toolBlock = response.content.find(
-        (block): block is Anthropic.Messages.ToolUseBlock =>
-          block.type === "tool_use" && block.name === "submit_evaluation",
-      );
-      if (!toolBlock) {
-        throw new EvalResponseError("Anthropic did not return the expected tool use response");
-      }
-
-      return validateLLMResponse(toolBlock.input);
-    } catch (error: unknown) {
-      if (error instanceof EvalResponseError) throw error;
-      const err = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : {};
-      const nested = typeof err.error === "object" && err.error !== null ? (err.error as Record<string, unknown>) : undefined;
-      if (err.code === "ETIMEDOUT" || nested?.type === "timeout") {
-        throw new EvalTimeoutError(`Anthropic request timed out after ${this.timeout}ms`);
-      }
-      throw error;
+    const toolBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock =>
+        block.type === "tool_use" && block.name === "submit_evaluation",
+    );
+    if (!toolBlock) {
+      throw new EvalResponseError("Anthropic did not return the expected tool use response");
     }
+
+    return validateLLMResponse(toolBlock.input);
   }
 }

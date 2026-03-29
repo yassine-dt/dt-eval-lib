@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { getPrompt, listPrompts, BuiltInMetric } from "../src/prompts/index";
+import { describe, expect, it } from "vitest";
 import { EvalMetricError } from "../src/errors";
+import { BuiltInMetric, getPrompt, listPrompts } from "../src/prompts/index";
 
 describe("prompt catalog", () => {
   it("loads all 13 built-in prompts", () => {
@@ -47,14 +47,15 @@ describe("prompt catalog", () => {
     { id: BuiltInMetric.Coherence, type: "likert", threshold: 3 },
   ] as const;
 
-  it.each(scoringCases)(
-    "$id has $type scoring with threshold $threshold",
-    ({ id, type, threshold }) => {
-      const p = getPrompt(id);
-      expect(p.scoring.type).toBe(type);
-      expect(p.scoring.threshold).toBe(threshold);
-    },
-  );
+  it.each(scoringCases)("$id has $type scoring with threshold $threshold", ({
+    id,
+    type,
+    threshold,
+  }) => {
+    const p = getPrompt(id);
+    expect(p.scoring.type).toBe(type);
+    expect(p.scoring.threshold).toBe(threshold);
+  });
 
   const requiredFieldsCases = [
     { id: BuiltInMetric.Toxicity, fields: ["input", "output"] },
@@ -72,13 +73,10 @@ describe("prompt catalog", () => {
     { id: BuiltInMetric.Conciseness, fields: ["input", "output"] },
   ] as const;
 
-  it.each(requiredFieldsCases)(
-    "$id requires $fields",
-    ({ id, fields }) => {
-      const p = getPrompt(id);
-      expect(p.requiredFields).toEqual(fields);
-    },
-  );
+  it.each(requiredFieldsCases)("$id requires $fields", ({ id, fields }) => {
+    const p = getPrompt(id);
+    expect(p.requiredFields).toEqual(fields);
+  });
 });
 
 describe("getPrompt", () => {
@@ -95,9 +93,10 @@ describe("getPrompt", () => {
   it("error message lists available metrics", () => {
     try {
       getPrompt("nonexistent");
-    } catch (e: any) {
-      expect(e.message).toContain("toxicity");
-      expect(e.message).toContain("faithfulness");
+    } catch (e: unknown) {
+      expect(e).toBeInstanceOf(Error);
+      expect((e as Error).message).toContain("toxicity");
+      expect((e as Error).message).toContain("faithfulness");
     }
   });
 });

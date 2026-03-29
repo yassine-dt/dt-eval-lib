@@ -1,6 +1,6 @@
+import { EvalMetricError } from "../errors";
 import { catalog } from "./catalog-data";
 import type { PromptDefinition } from "./types";
-import { EvalMetricError } from "../errors";
 
 export function getPrompt(id: string): PromptDefinition {
   const prompt = catalog.find((p) => p.id === id);

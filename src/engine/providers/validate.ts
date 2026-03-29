@@ -1,5 +1,5 @@
-import type { LLMJudgeResponse } from "./types";
 import { EvalResponseError } from "../../errors";
+import type { LLMJudgeResponse } from "./types";
 
 export function validateLLMResponse(parsed: unknown): LLMJudgeResponse {
   const response = parsed as Record<string, unknown>;

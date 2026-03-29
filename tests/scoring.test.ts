@@ -1,11 +1,6 @@
-import { describe, it, expect } from "vitest";
-import {
-  computeScore,
-  BINARY_SCALE,
-  CONTINUOUS_SCALE,
-  LIKERT_SCALE,
-} from "../src/scoring/index";
+import { describe, expect, it } from "vitest";
 import { EvalInputError } from "../src/errors";
+import { BINARY_SCALE, CONTINUOUS_SCALE, computeScore, LIKERT_SCALE } from "../src/scoring/index";
 
 describe("computeScore", () => {
   it("binary scale: value 1 → pass", () => {

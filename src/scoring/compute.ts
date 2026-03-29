@@ -1,5 +1,5 @@
-import type { ScoringScale, Score } from "./types";
-import { EvalInputError } from "../errors";
+import { EvalConfigError, EvalInputError } from "../errors";
+import type { Score, ScoringScale } from "./types";
 
 /**
  * Compute a score from a raw value using a scoring scale.
@@ -16,38 +16,33 @@ export function computeScore(
 
   const [min, max] = scale.range;
   if (value < min || value > max) {
-    throw new EvalInputError(
-      `Score value ${value} is out of range [${min}, ${max}]`,
-    );
+    throw new EvalInputError(`Score value ${value} is out of range [${min}, ${max}]`);
   }
 
   if (scale.type === "likert" && !Number.isInteger(value)) {
-    throw new EvalInputError(
-      `Likert scale requires integer values, got ${value}`,
-    );
+    throw new EvalInputError(`Likert scale requires integer values, got ${value}`);
   }
 
   // Validate scale.threshold
   if (!Number.isFinite(scale.threshold) || scale.threshold < min || scale.threshold > max) {
-    throw new EvalInputError(
+    throw new EvalConfigError(
       `Scale threshold ${scale.threshold} is out of range [${min}, ${max}]`,
     );
   }
   if (scale.type === "likert" && !Number.isInteger(scale.threshold)) {
-    throw new EvalInputError(
-      `Likert scale requires an integer threshold, got ${scale.threshold}`,
-    );
+    throw new EvalConfigError(`Likert scale requires an integer threshold, got ${scale.threshold}`);
   }
 
-  if (thresholdOverride !== undefined &&
-      (Number.isNaN(thresholdOverride) || thresholdOverride < min || thresholdOverride > max)) {
+  if (
+    thresholdOverride !== undefined &&
+    (!Number.isFinite(thresholdOverride) || thresholdOverride < min || thresholdOverride > max)
+  ) {
     throw new EvalInputError(
       `Threshold override ${thresholdOverride} is out of range [${min}, ${max}]`,
     );
   }
 
-  const threshold =
-    thresholdOverride !== undefined ? thresholdOverride : scale.threshold;
+  const threshold = thresholdOverride !== undefined ? thresholdOverride : scale.threshold;
   const label: Score["label"] = value >= threshold ? "pass" : "fail";
 
   return { value, label };

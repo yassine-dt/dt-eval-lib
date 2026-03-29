@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   DtEvalError,
   EvalConfigError,
-  EvalMetricError,
   EvalInputError,
-  EvalTimeoutError,
+  EvalMetricError,
   EvalResponseError,
+  EvalTimeoutError,
 } from "../src/errors";
 
 const errorClasses = [
@@ -18,14 +18,15 @@ const errorClasses = [
 ] as const;
 
 describe("Error classes", () => {
-  it.each(errorClasses)(
-    "$name extends $parent.name and sets correct name/message",
-    ({ Class, name, parent }) => {
-      const err = new Class("test message");
-      expect(err).toBeInstanceOf(parent);
-      expect(err).toBeInstanceOf(Error);
-      expect(err.name).toBe(name);
-      expect(err.message).toBe("test message");
-    },
-  );
+  it.each(errorClasses)("$name extends $parent.name and sets correct name/message", ({
+    Class,
+    name,
+    parent,
+  }) => {
+    const err = new Class("test message");
+    expect(err).toBeInstanceOf(parent);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe(name);
+    expect(err.message).toBe("test message");
+  });
 });

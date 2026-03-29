@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // We'll mock the provider modules so no real API calls are made
 vi.mock("openai", () => {
@@ -24,19 +24,19 @@ vi.mock("@anthropic-ai/sdk", () => {
 });
 
 import { evaluate } from "../src/engine/index";
+import { AnthropicProvider } from "../src/engine/providers/anthropic";
 import { createProvider } from "../src/engine/providers/index";
 import { OpenAIProvider } from "../src/engine/providers/openai";
-import { AnthropicProvider } from "../src/engine/providers/anthropic";
-import { BuiltInMetric } from "../src/prompts/types";
-import type { EvalConfig, EvalInput, ProviderOptions, PromptDefinition } from "../src/types";
+import type { LLMJudgeResponse, LLMProvider } from "../src/engine/providers/types";
+import type { EvalConfig, EvalInput, ProviderOptions } from "../src/engine/types";
 import {
   EvalConfigError,
   EvalInputError,
-  EvalMetricError,
-  EvalTimeoutError,
   EvalResponseError,
+  EvalTimeoutError,
 } from "../src/errors";
-import type { LLMProvider, LLMJudgeResponse } from "../src/engine/providers/types";
+import type { PromptDefinition } from "../src/prompts/types";
+import { BuiltInMetric } from "../src/prompts/types";
 
 // Helper to create a mock provider
 function mockProvider(response: LLMJudgeResponse): LLMProvider {
@@ -95,7 +95,7 @@ const customPrompt: PromptDefinition = {
 
 describe("evaluate() — happy path", () => {
   beforeEach(() => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 1, summary: "Good output", reasoning: "Output is correct" }),
     );
   });
@@ -126,7 +126,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("binary scoring: score 1 → pass", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 1, summary: "safe", reasoning: "no issues" }),
     );
     const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
@@ -134,7 +134,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("binary scoring: score 0 → fail", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 0, summary: "toxic", reasoning: "contains slurs" }),
     );
     const result = await evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig);
@@ -142,7 +142,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("continuous scoring: score 0.8 → pass", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 0.8, summary: "relevant", reasoning: "on topic" }),
     );
     const result = await evaluate(BuiltInMetric.Relevance, baseInput, baseConfig);
@@ -150,7 +150,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("likert scoring: score 4 → pass", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 4, summary: "coherent", reasoning: "well structured" }),
     );
     const result = await evaluate(BuiltInMetric.Coherence, baseInput, baseConfig);
@@ -158,7 +158,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("thresholdOverride: continuous with custom threshold 0.9 — score 0.8 → fail", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 0.8, summary: "ok", reasoning: "decent" }),
     );
     const result = await evaluate(BuiltInMetric.Relevance, baseInput, {
@@ -169,7 +169,7 @@ describe("evaluate() — happy path", () => {
   });
 
   it("thresholdOverride: is passed through to computeScore", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 0.4, summary: "ok", reasoning: "ok" }),
     );
     // Default continuous threshold is 0.5, so 0.4 would fail
@@ -192,7 +192,7 @@ describe("evaluate() — prompt rendering", () => {
         return { scoreValue: 1, summary: "ok", reasoning: "ok" };
       }),
     };
-    vi.mocked(createProvider).mockReturnValue(provider);
+    vi.mocked(createProvider).mockResolvedValue(provider);
   });
 
   afterEach(() => {
@@ -241,7 +241,7 @@ describe("evaluate() — prompt rendering", () => {
 
 describe("evaluate() — input validation", () => {
   beforeEach(() => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 1, summary: "ok", reasoning: "ok" }),
     );
   });
@@ -265,8 +265,9 @@ describe("evaluate() — input validation", () => {
   it("error message lists missing fields", async () => {
     try {
       await evaluate(BuiltInMetric.Faithfulness, baseInput, baseConfig);
-    } catch (e: any) {
-      expect(e.message).toContain("context");
+    } catch (e: unknown) {
+      expect(e).toBeInstanceOf(Error);
+      expect((e as Error).message).toContain("context");
     }
   });
 });
@@ -290,29 +291,33 @@ describe("evaluate() — error handling", () => {
   });
 
   it("throws EvalTimeoutError on provider timeout", async () => {
-    const timeoutError = new Error("timeout");
-    (timeoutError as any).code = "ETIMEDOUT";
-    vi.mocked(createProvider).mockReturnValue(failingProvider(timeoutError));
-    await expect(
-      evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig),
-    ).rejects.toBeInstanceOf(EvalTimeoutError);
+    const timeoutError = Object.assign(new Error("timeout"), { code: "ETIMEDOUT" });
+    vi.mocked(createProvider).mockResolvedValue(failingProvider(timeoutError));
+    await expect(evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig)).rejects.toBeInstanceOf(
+      EvalTimeoutError,
+    );
   });
 
   it("throws EvalResponseError on malformed LLM response", async () => {
     const provider: LLMProvider = {
-      call: vi.fn().mockResolvedValue({ garbage: true }),
+      call: vi
+        .fn()
+        .mockRejectedValue(
+          new EvalResponseError(
+            "Malformed LLM response: expected { scoreValue: number, summary: string, reasoning: string }",
+          ),
+        ),
     };
-    vi.mocked(createProvider).mockReturnValue(provider);
-    await expect(
-      evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig),
-    ).rejects.toBeInstanceOf(EvalResponseError);
+    vi.mocked(createProvider).mockResolvedValue(provider);
+    await expect(evaluate(BuiltInMetric.Toxicity, baseInput, baseConfig)).rejects.toBeInstanceOf(
+      EvalResponseError,
+    );
   });
 
   it("retries on transient error up to maxRetries", async () => {
-    const transientError = new Error("rate limit");
-    (transientError as any).status = 429;
+    const transientError = Object.assign(new Error("rate limit"), { status: 429 });
     const provider = failingProvider(transientError, 2); // succeeds on 3rd call
-    vi.mocked(createProvider).mockReturnValue(provider);
+    vi.mocked(createProvider).mockResolvedValue(provider);
     const result = await evaluate(BuiltInMetric.Toxicity, baseInput, {
       provider: { ...baseProviderOptions, maxRetries: 2 },
     });
@@ -321,9 +326,8 @@ describe("evaluate() — error handling", () => {
   });
 
   it("throws after exhausting retries", async () => {
-    const transientError = new Error("rate limit");
-    (transientError as any).status = 429;
-    vi.mocked(createProvider).mockReturnValue(failingProvider(transientError));
+    const transientError = Object.assign(new Error("rate limit"), { status: 429 });
+    vi.mocked(createProvider).mockResolvedValue(failingProvider(transientError));
     await expect(
       evaluate(BuiltInMetric.Toxicity, baseInput, {
         provider: { ...baseProviderOptions, maxRetries: 2 },
@@ -332,10 +336,9 @@ describe("evaluate() — error handling", () => {
   });
 
   it("uses exponential backoff between retries", async () => {
-    const transientError = new Error("rate limit");
-    (transientError as any).status = 429;
+    const transientError = Object.assign(new Error("rate limit"), { status: 429 });
     const provider = failingProvider(transientError, 2);
-    vi.mocked(createProvider).mockReturnValue(provider);
+    vi.mocked(createProvider).mockResolvedValue(provider);
 
     await evaluate(BuiltInMetric.Toxicity, baseInput, {
       provider: { ...baseProviderOptions, maxRetries: 2 },
@@ -345,7 +348,7 @@ describe("evaluate() — error handling", () => {
   });
 
   it("throws EvalConfigError for negative maxRetries", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 1, summary: "ok", reasoning: "ok" }),
     );
     await expect(
@@ -356,7 +359,7 @@ describe("evaluate() — error handling", () => {
   });
 
   it("throws EvalConfigError for non-integer maxRetries", async () => {
-    vi.mocked(createProvider).mockReturnValue(
+    vi.mocked(createProvider).mockResolvedValue(
       mockProvider({ scoreValue: 1, summary: "ok", reasoning: "ok" }),
     );
     await expect(

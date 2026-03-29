@@ -3,4 +3,6 @@ dist/
 *.tsbuildinfo
 .env
 spec/
+specs/
 _temp_tests/
+_temp/

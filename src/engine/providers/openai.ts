@@ -1,7 +1,7 @@
 import OpenAI from "openai";
-import type { LLMJudgeResponse, ProviderConfig } from "./types";
+import { EvalResponseError } from "../../errors";
 import { BaseProvider } from "./base";
-import { EvalTimeoutError, EvalResponseError } from "../../errors";
+import type { LLMJudgeResponse, ProviderConfig } from "./types";
 import { validateLLMResponse } from "./validate";
 
 interface ResponseSchema {
@@ -39,41 +39,34 @@ export class OpenAIProvider extends BaseProvider {
       apiKey: this.apiKey,
       baseURL: this.baseUrl,
       timeout: this.timeout,
+      maxRetries: 0,
     });
   }
 
   async call(prompt: string): Promise<LLMJudgeResponse> {
-    try {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert LLM evaluation judge. Respond only with the requested JSON structure.",
-          },
-          { role: "user", content: prompt },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: RESPONSE_SCHEMA,
+    const response = await this.client.chat.completions.create({
+      model: this.model,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert LLM evaluation judge. Respond only with the requested JSON structure.",
         },
-        temperature: 0,
-      });
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: RESPONSE_SCHEMA,
+      },
+      temperature: 0,
+    });
 
-      const content = response.choices?.[0]?.message?.content;
-      if (!content) {
-        throw new EvalResponseError("OpenAI returned an empty response");
-      }
-
-      const parsed = JSON.parse(content);
-      return validateLLMResponse(parsed);
-    } catch (error: unknown) {
-      if (error instanceof EvalResponseError) throw error;
-      const err = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : {};
-      if (err.code === "ETIMEDOUT" || err.type === "request-timeout") {
-        throw new EvalTimeoutError(`OpenAI request timed out after ${this.timeout}ms`);
-      }
-      throw error;
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new EvalResponseError("OpenAI returned an empty response");
     }
+
+    const parsed = JSON.parse(content);
+    return validateLLMResponse(parsed);
   }
 }
