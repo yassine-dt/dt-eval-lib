@@ -221,7 +221,7 @@ describe("evaluate() — prompt rendering", () => {
     expect(capturedPrompt).not.toContain("{{context}}");
   });
 
-  it("replaces {{expected_output}} placeholder when present", async () => {
+  it("replaces {{expectedOutput}} placeholder when present", async () => {
     const input: EvalInput = {
       ...baseInput,
       expectedOutput: "Paris is the capital of France.",
@@ -286,7 +286,8 @@ describe("evaluate() — error handling", () => {
         EvalConfigError,
       );
     } finally {
-      if (origEnv) process.env.OPENAI_API_KEY = origEnv;
+      if (origEnv !== undefined) process.env.OPENAI_API_KEY = origEnv;
+      else delete process.env.OPENAI_API_KEY;
     }
   });
 
@@ -396,26 +397,36 @@ describe("provider factory", () => {
   });
 
   it("uses explicit apiKey over env var", async () => {
+    const origKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "env-key";
-    const provider = await createProvider({
-      provider: "openai",
-      apiKey: "explicit-key",
-      timeout: 30000,
-      maxRetries: 2,
-    });
-    expect(provider).toBeInstanceOf(OpenAIProvider);
-    delete process.env.OPENAI_API_KEY;
+    try {
+      const provider = await createProvider({
+        provider: "openai",
+        apiKey: "explicit-key",
+        timeout: 30000,
+        maxRetries: 2,
+      });
+      expect(provider).toBeInstanceOf(OpenAIProvider);
+    } finally {
+      if (origKey !== undefined) process.env.OPENAI_API_KEY = origKey;
+      else delete process.env.OPENAI_API_KEY;
+    }
   });
 
   it("falls back to env var when apiKey not provided", async () => {
+    const origKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "env-key";
-    const provider = await createProvider({
-      provider: "openai",
-      timeout: 30000,
-      maxRetries: 2,
-    });
-    expect(provider).toBeInstanceOf(OpenAIProvider);
-    delete process.env.OPENAI_API_KEY;
+    try {
+      const provider = await createProvider({
+        provider: "openai",
+        timeout: 30000,
+        maxRetries: 2,
+      });
+      expect(provider).toBeInstanceOf(OpenAIProvider);
+    } finally {
+      if (origKey !== undefined) process.env.OPENAI_API_KEY = origKey;
+      else delete process.env.OPENAI_API_KEY;
+    }
   });
 
   it("uses custom model when specified", async () => {
@@ -451,26 +462,36 @@ describe("provider factory", () => {
   });
 
   it("falls back to OPENAI_BASE_URL env var", async () => {
+    const origUrl = process.env.OPENAI_BASE_URL;
     process.env.OPENAI_BASE_URL = "https://env.api.example.com/v1";
-    const provider = await createProvider({
-      provider: "openai",
-      apiKey: "test-key",
-      timeout: 30000,
-      maxRetries: 2,
-    });
-    expect(provider).toBeInstanceOf(OpenAIProvider);
-    delete process.env.OPENAI_BASE_URL;
+    try {
+      const provider = await createProvider({
+        provider: "openai",
+        apiKey: "test-key",
+        timeout: 30000,
+        maxRetries: 2,
+      });
+      expect(provider).toBeInstanceOf(OpenAIProvider);
+    } finally {
+      if (origUrl !== undefined) process.env.OPENAI_BASE_URL = origUrl;
+      else delete process.env.OPENAI_BASE_URL;
+    }
   });
 
   it("falls back to ANTHROPIC_BASE_URL env var", async () => {
+    const origUrl = process.env.ANTHROPIC_BASE_URL;
     process.env.ANTHROPIC_BASE_URL = "https://env.api.example.com";
-    const provider = await createProvider({
-      provider: "anthropic",
-      apiKey: "test-key",
-      timeout: 30000,
-      maxRetries: 2,
-    });
-    expect(provider).toBeInstanceOf(AnthropicProvider);
-    delete process.env.ANTHROPIC_BASE_URL;
+    try {
+      const provider = await createProvider({
+        provider: "anthropic",
+        apiKey: "test-key",
+        timeout: 30000,
+        maxRetries: 2,
+      });
+      expect(provider).toBeInstanceOf(AnthropicProvider);
+    } finally {
+      if (origUrl !== undefined) process.env.ANTHROPIC_BASE_URL = origUrl;
+      else delete process.env.ANTHROPIC_BASE_URL;
+    }
   });
 });

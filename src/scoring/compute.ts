@@ -33,13 +33,17 @@ export function computeScore(
     throw new EvalConfigError(`Likert scale requires an integer threshold, got ${scale.threshold}`);
   }
 
-  if (
-    thresholdOverride !== undefined &&
-    (!Number.isFinite(thresholdOverride) || thresholdOverride < min || thresholdOverride > max)
-  ) {
-    throw new EvalInputError(
-      `Threshold override ${thresholdOverride} is out of range [${min}, ${max}]`,
-    );
+  if (thresholdOverride !== undefined) {
+    if (!Number.isFinite(thresholdOverride) || thresholdOverride < min || thresholdOverride > max) {
+      throw new EvalInputError(
+        `Threshold override ${thresholdOverride} is out of range [${min}, ${max}]`,
+      );
+    }
+    if (scale.type === "likert" && !Number.isInteger(thresholdOverride)) {
+      throw new EvalInputError(
+        `Likert scale requires an integer threshold override, got ${thresholdOverride}`,
+      );
+    }
   }
 
   const threshold = thresholdOverride !== undefined ? thresholdOverride : scale.threshold;
