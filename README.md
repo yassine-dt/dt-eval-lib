@@ -1,5 +1,8 @@
 # dt-eval-lib
 
+> ⚠️ **This repository is migrating to [dynatrace-oss/dt-eval-cli](https://github.com/dynatrace-oss/dt-eval-cli).**
+> Please use the new repository for all future development and contributions.
+
 Minimal TypeScript library for running LLM-as-a-judge evaluations.
 
 ## Install
