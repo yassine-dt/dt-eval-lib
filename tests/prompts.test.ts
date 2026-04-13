@@ -42,8 +42,12 @@ describe("prompt catalog", () => {
   });
 
   const scoringCases = [
+    { id: BuiltInMetric.Fluency, type: "continuous", threshold: 0.7 },
     { id: BuiltInMetric.Toxicity, type: "binary", threshold: 1 },
-    { id: BuiltInMetric.Faithfulness, type: "continuous", threshold: 0.5 },
+    { id: BuiltInMetric.Faithfulness, type: "continuous", threshold: 0.8 },
+    { id: BuiltInMetric.Hallucination, type: "continuous", threshold: 0.8 },
+    { id: BuiltInMetric.PiiLeakage, type: "continuous", threshold: 0.9 },
+    { id: BuiltInMetric.FactualAccuracy, type: "continuous", threshold: 0.8 },
     { id: BuiltInMetric.Coherence, type: "likert", threshold: 3 },
   ] as const;
 
@@ -58,6 +62,7 @@ describe("prompt catalog", () => {
   });
 
   const requiredFieldsCases = [
+    { id: BuiltInMetric.Fluency, fields: ["input", "output", "context"] },
     { id: BuiltInMetric.Toxicity, fields: ["input", "output"] },
     { id: BuiltInMetric.Faithfulness, fields: ["input", "output", "context"] },
     { id: BuiltInMetric.Hallucination, fields: ["input", "output", "context"] },
